@@ -12,6 +12,7 @@ import {
   type CartItem,
 } from "@/lib/cart";
 import { selectVariant, uniqueOptions, type VariantLike } from "@/lib/product-variants";
+import { getProductImage } from "@/lib/product-media";
 
 type Variant = VariantLike & {
   product_id: string;
@@ -110,16 +111,21 @@ function Icon({
   );
 }
 
+function getDefaultChoice(variants: Variant[]) {
+  const preferred = variants.find((variant) => variant.stock > 0) ?? variants[0] ?? null;
+  return {
+    size: preferred?.size ?? null,
+    color: preferred?.color ?? null,
+  };
+}
+
 function getChoice(product: Product, variants: Record<string, Variant[]>, choices: Record<string, Choice>) {
   const vs = variants[product.id] ?? [];
   const options = uniqueOptions(vs);
-  const current = choices[product.id] ?? {
-    size: options.sizes[0] ?? null,
-    color: options.colors[0] ?? null,
-  };
+  const current = choices[product.id] ?? getDefaultChoice(vs);
 
   return {
-    variant: selectVariant(vs, current.size, current.color) ?? vs[0] ?? null,
+    variant: selectVariant(vs, current.size, current.color),
     options,
     current,
   };
@@ -202,7 +208,7 @@ export default function Home() {
         const initial: Record<string, Choice> = {};
         Object.entries(grouped).forEach(([productId, list]) => {
           const { sizes, colors } = uniqueOptions(list);
-          initial[productId] = { size: sizes[0] ?? null, color: colors[0] ?? null };
+          initial[productId] = getDefaultChoice(list);
         });
         setChoices(initial);
       }
@@ -258,10 +264,10 @@ export default function Home() {
     quantity = 1,
   ) {
     const vs = variants[product.id] ?? [];
-    const variant = selectVariant(vs, size, color) ?? vs[0] ?? null;
+    const variant = selectVariant(vs, size, color);
 
     if (vs.length > 0 && !variant) {
-      setToast("اختار المقاس واللون المناسب الأول");
+      setToast("الاختيار ده مش متاح بالمقاس واللون دول");
       return;
     }
 
@@ -383,13 +389,18 @@ export default function Home() {
             </div>
 
             <div className="hero-poster">
-              <div className="poster-shape poster-shape-back" />
-              <div className="poster-shape poster-shape-main">
-                <div className="poster-collar" />
-                <div className="poster-label">PLAY / MOVE / GROW</div>
+              <img
+                className="hero-real-image"
+                src={getProductImage("girls-dress") || ""}
+                alt="تشكيلة ملابس أطفال من الجويلي"
+              />
+              <div className="hero-image-wash" />
+              <div className="hero-image-caption">
+                <span>NEW SEASON</span>
+                <b>قطع مختارة للصغار.</b>
               </div>
-              <span className="floating-note note-one">مريح طول اليوم</span>
-              <span className="floating-note note-two">اختار مقاسك</span>
+              <span className="floating-note note-one">مقاسات وألوان</span>
+              <span className="floating-note note-two">صور حقيقية</span>
             </div>
 
             <div className="hero-art-bottom">
@@ -455,15 +466,27 @@ export default function Home() {
                   </div>
 
                   <div className="product-stage">
-                    {productImages[product.id]?.[0] ? (
-                      <img className="product-real-image" src={productImages[product.id][0].url} alt={productImages[product.id][0].alt_ar || product.name_ar} loading="lazy" />
-                    ) : null}
-                    <div className={productImages[product.id]?.[0] ? "hanger image-hanger" : "hanger"} />
-                    <div className="product-shape">
-                      <span className="shirt-neck" />
-                      <span className="shirt-seam" />
-                    </div>
-                    <span className="visual-copy">ELGEWALIY</span>
+                    {(() => {
+                      const imageUrl = getProductImage(
+                        product.slug,
+                        productImages[product.id] ?? [],
+                      );
+
+                      return imageUrl ? (
+                        <img
+                          className="product-real-image"
+                          src={imageUrl}
+                          alt={productImages[product.id]?.[0]?.alt_ar || product.name_ar}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="image-placeholder">
+                          <span>ELGEWALIY</span>
+                          <small>صور المنتج قريبًا</small>
+                        </div>
+                      );
+                    })()}
+                    <div className="product-media-shade" />
                   </div>
 
                   <button
@@ -701,10 +724,24 @@ export default function Home() {
 
             <div className="modal-visual">
               <span className="modal-sup">ELGEWALIY / 2026</span>
-              <div className="product-shape large">
-                <span className="shirt-neck" />
-                <span className="shirt-seam" />
-              </div>
+              {(() => {
+                const imageUrl = getProductImage(
+                  selected.slug,
+                  productImages[selected.id] ?? [],
+                );
+
+                return imageUrl ? (
+                  <img
+                    className="modal-real-image"
+                    src={imageUrl}
+                    alt={productImages[selected.id]?.[0]?.alt_ar || selected.name_ar}
+                  />
+                ) : (
+                  <div className="modal-image-placeholder">
+                    <span>ELGEWALIY</span>
+                  </div>
+                );
+              })()}
               <span className="modal-vertical">KIDSWEAR ESSENTIALS</span>
             </div>
 
