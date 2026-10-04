@@ -158,11 +158,14 @@ export default function Admin() {
   const [newOrderCount, setNewOrderCount] = useState(0);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [productEditorOpen, setProductEditorOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [categoryEditorOpen, setCategoryEditorOpen] = useState(false);
   const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
+  const [variantEditorOpen, setVariantEditorOpen] = useState(false);
   const [variantForm, setVariantForm] = useState(emptyVariantForm);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -333,6 +336,7 @@ export default function Admin() {
   }
 
   function startProduct(product?: Product) {
+    setProductEditorOpen(true);
     if (product) {
       setEditingProductId(product.id);
       setProductForm({
@@ -389,11 +393,13 @@ export default function Admin() {
       is_active: true,
     });
     setSaving(false);
+    setProductEditorOpen(false);
     setEditingProductId(null);
     setProductForm(emptyProductForm);
   }
 
   function startCategory(category?: Category) {
+    setCategoryEditorOpen(true);
     if (category) {
       setEditingCategoryId(category.id);
       setCategoryForm({
@@ -430,11 +436,13 @@ export default function Admin() {
       is_active: true,
     });
     setSaving(false);
+    setCategoryEditorOpen(false);
     setEditingCategoryId(null);
     setCategoryForm(emptyCategoryForm);
   }
 
   function startVariant(variant?: Variant) {
+    setVariantEditorOpen(true);
     if (variant) {
       setEditingVariantId(variant.id);
       setVariantForm({
@@ -483,6 +491,7 @@ export default function Admin() {
       is_active: true,
     });
     setSaving(false);
+    setVariantEditorOpen(false);
     setEditingVariantId(null);
     setVariantForm(emptyVariantForm);
   }
@@ -1079,7 +1088,7 @@ export default function Admin() {
                 </button>
               </div>
 
-              {(editingProductId !== null || productForm.name_ar) && (
+              {productEditorOpen && (
                 <div className="rounded-3xl border border-orange-100 bg-orange-50 p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -1092,6 +1101,7 @@ export default function Admin() {
                     </div>
                     <button
                       onClick={() => {
+                        setProductEditorOpen(false);
                         setEditingProductId(null);
                         setProductForm(emptyProductForm);
                       }}
@@ -1377,7 +1387,7 @@ export default function Admin() {
                               </div>
 
                               <div className="mt-3 space-y-2">
-                                {(editingVariantId !== null || variantForm.size || variantForm.color) && (
+                                {variantEditorOpen && (
                                   <div className="rounded-2xl border border-orange-100 bg-orange-50 p-4">
                                     <div className="grid gap-2 sm:grid-cols-2">
                                       <input
@@ -1438,6 +1448,7 @@ export default function Admin() {
                                       </button>
                                       <button
                                         onClick={() => {
+                                          setVariantEditorOpen(false);
                                           setEditingVariantId(null);
                                           setVariantForm(emptyVariantForm);
                                         }}
@@ -1535,7 +1546,7 @@ export default function Admin() {
                 </button>
               </div>
 
-              {(editingCategoryId !== null || categoryForm.name_ar) && (
+              {categoryEditorOpen && (
                 <div className="rounded-3xl border border-orange-100 bg-orange-50 p-5">
                   <div className="grid gap-3 md:grid-cols-2">
                     <input
@@ -1597,6 +1608,7 @@ export default function Admin() {
                     </button>
                     <button
                       onClick={() => {
+                        setCategoryEditorOpen(false);
                         setEditingCategoryId(null);
                         setCategoryForm(emptyCategoryForm);
                       }}
