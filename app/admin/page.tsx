@@ -40,7 +40,10 @@ export default function Admin() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name_ar: string; name_en: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name_ar: string; name_en: string; slug?: string; image_url?: string | null; sort_order?: number; is_active?: boolean }[]>([]);
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name_ar: string; name_en: string; slug?: string; image_url?: string | null; sort_order?: number; is_active?: boolean } | null>(null);
+  const [categoryForm, setCategoryForm] = useState({ name_ar: "", name_en: "", slug: "", image_url: "", sort_order: "0" });
+  const [categorySaving, setCategorySaving] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productSaving, setProductSaving] = useState(false);
@@ -55,7 +58,7 @@ export default function Admin() {
   const loadProducts = useCallback(async () => {
     const [{ data, error: e }, { data: cats }] = await Promise.all([
       supabase.from("products").select("id,name_ar,name_en,slug,description_ar,description_en,price,compare_at_price,is_active,category_id").order("created_at", { ascending: false }),
-      supabase.from("categories").select("id,name_ar,name_en").order("sort_order")
+      supabase.from("categories").select("id,name_ar,name_en,slug,image_url,sort_order,is_active").order("sort_order")
     ]);
     if (e) setError("تعذر تحميل المنتجات."); else { setProducts((data || []) as Product[]); setCategories(cats || []); }
   }, []);
@@ -123,6 +126,37 @@ export default function Admin() {
     const slug = nameEn.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const { error: e } = await supabase.rpc("upsert_store_product", { p_id: null, p_category_id: categories[0]?.id || null, p_name_ar: nameAr, p_name_en: nameEn, p_slug: slug, p_description_ar: null, p_description_en: null, p_price: Number(price), p_compare_at_price: null, p_is_active: true });
     if (e) setError(e.message); else await loadProducts();
+  };
+
+  const startEditCategory = (category: (typeof categories)[number]) => {
+    setEditingCategory(category);
+    setCategoryForm({ name_ar: category.name_ar, name_en: category.name_en, slug: category.slug || "", image_url: category.image_url || "", sort_order: String(category.sort_order ?? 0) });
+    setError("");
+  };
+
+  const saveCategory = async () => {
+    const sort = Number(categoryForm.sort_order);
+    if (!categoryForm.name_ar.trim() || !categoryForm.name_en.trim() || !categoryForm.slug.trim() || !Number.isInteger(sort) || sort < 0) {
+      setError("بيانات القسم غير صحيحة.");
+      return;
+    }
+    setCategorySaving(true); setError("");
+    const { error: e } = await supabase.rpc("upsert_store_category", {
+      p_id: editingCategory?.id ?? null,
+      p_name_ar: categoryForm.name_ar.trim(),
+      p_name_en: categoryForm.name_en.trim(),
+      p_slug: categoryForm.slug.trim().toLowerCase(),
+      p_image_url: categoryForm.image_url.trim() || null,
+      p_sort_order: sort,
+      p_is_active: editingCategory?.is_active ?? true,
+    });
+    if (e) setError(e.message);
+    else {
+      setEditingCategory(null);
+      setCategoryForm({ name_ar: "", name_en: "", slug: "", image_url: "", sort_order: "0" });
+      await loadProducts();
+    }
+    setCategorySaving(false);
   };
 
   const startEditProduct = (product: Product) => {
@@ -323,6 +357,19 @@ export default function Admin() {
           </section>
         ) : (
           <section className="space-y-5">
+            <div className="card p-6">
+              <div className="flex items-center justify-between gap-3"><div><h2 className="text-xl font-black">إدارة الأقسام</h2><p className="mt-1 text-sm text-zinc-500">أقسام المتجر وترتيب ظهورها.</p></div></div>
+              <div className="mt-5 grid gap-3 md:grid-cols-5">
+                <input value={categoryForm.name_ar} onChange={e=>setCategoryForm(v=>({...v,name_ar:e.target.value}))} placeholder="اسم القسم بالعربي" className="rounded-xl border p-3"/>
+                <input value={categoryForm.name_en} onChange={e=>setCategoryForm(v=>({...v,name_en:e.target.value}))} placeholder="اسم القسم بالإنجليزية" className="rounded-xl border p-3"/>
+                <input value={categoryForm.slug} onChange={e=>setCategoryForm(v=>({...v,slug:e.target.value}))} placeholder="slug" dir="ltr" className="rounded-xl border p-3"/>
+                <input value={categoryForm.image_url} onChange={e=>setCategoryForm(v=>({...v,image_url:e.target.value}))} placeholder="رابط صورة اختياري" dir="ltr" className="rounded-xl border p-3"/>
+                <input type="number" min="0" value={categoryForm.sort_order} onChange={e=>setCategoryForm(v=>({...v,sort_order:e.target.value}))} placeholder="الترتيب" className="rounded-xl border p-3"/>
+              </div>
+              <div className="mt-3 flex gap-2"><button disabled={categorySaving} onClick={()=>void saveCategory()} className="rounded-xl bg-orange-500 px-5 py-3 font-black text-white disabled:opacity-50">{categorySaving?"جارٍ الحفظ...":editingCategory?"حفظ القسم":"إضافة القسم"}</button>{editingCategory&&<button onClick={()=>{setEditingCategory(null);setCategoryForm({name_ar:"",name_en:"",slug:"",image_url:"",sort_order:"0"});}} className="rounded-xl bg-zinc-100 px-5 py-3 font-black">إلغاء</button>}</div>
+              <div className="mt-5 divide-y rounded-2xl border">{categories.map(category=><div key={category.id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><b>{category.name_ar}</b><span className="mr-2 text-sm text-zinc-500">{category.name_en}</span><div className="text-xs text-zinc-400">/{category.slug} • ترتيب {category.sort_order ?? 0}</div></div><button onClick={()=>startEditCategory(category)} className="rounded-xl border px-4 py-2 text-sm font-bold">تعديل</button></div>)}</div>
+            </div>
+
             <div className="card p-6"><div className="flex items-center justify-between gap-3"><h1 className="text-xl font-black">إدارة المنتجات</h1><button onClick={() => void addProduct()} className="rounded-2xl bg-orange-500 px-5 py-3 font-black text-white">+ إضافة منتج</button></div><p className="mt-2 text-zinc-500">المنتجات الحالية: {products.length}</p></div><div className="card overflow-hidden">{products.map(p => <div key={p.id} className="border-b p-5 last:border-0"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><b>{p.name_ar}</b><div className="text-sm text-zinc-500">{p.name_en} • {Number(p.price).toLocaleString("ar-EG")} ج.م</div></div><div className="flex flex-wrap gap-2"><button onClick={() => startEditProduct(p)} className="rounded-xl border border-zinc-200 bg-white px-4 py-2 font-bold">تعديل</button><button onClick={() => void openVariants(p)} className="rounded-xl border border-orange-200 bg-white px-4 py-2 font-bold text-orange-700">المقاسات والألوان</button><button onClick={() => void toggleProduct(p)} className="rounded-xl bg-orange-50 px-4 py-2 font-bold text-orange-700">{p.is_active ? "نشط" : "مخفي"}</button></div></div></div>)}</div><div className="card p-6"><div className="mb-5 flex items-start justify-between gap-4"><div><h2 className="text-lg font-black">Variants</h2><p className="mt-1 text-sm text-zinc-500">{selectedProduct ? `${selectedProduct.name_ar} — ${variants.length} خيار` : "اختر منتجًا لإدارة المقاسات والألوان والمخزون."}</p></div>{selectedProduct && <button onClick={() => setSelectedProduct(null)} className="rounded-xl bg-zinc-100 px-3 py-2 text-sm font-bold">إغلاق</button>}</div>{selectedProduct && <><div className="mb-4 rounded-2xl bg-orange-50 p-4"><div className="font-black text-orange-800">{editingVariant ? "تعديل الـVariant" : "إضافة Variant جديد"}</div><div className="mt-1 text-sm text-orange-700">{editingVariant ? "عدّل البيانات ثم اضغط حفظ التعديلات." : "أضف مقاسًا أو لونًا ومخزونًا جديدًا للمنتج."}</div></div><div className="grid gap-3 md:grid-cols-5"><input value={variantForm.size} onChange={e => setVariantForm(v => ({...v,size:e.target.value}))} placeholder="المقاس مثل 6-8" className="rounded-xl border p-3"/><input value={variantForm.color} onChange={e => setVariantForm(v => ({...v,color:e.target.value}))} placeholder="اللون مثل أسود" className="rounded-xl border p-3"/><input value={variantForm.sku} onChange={e => setVariantForm(v => ({...v,sku:e.target.value}))} placeholder="SKU" className="rounded-xl border p-3"/><input type="number" min="0" value={variantForm.stock} onChange={e => setVariantForm(v => ({...v,stock:e.target.value}))} placeholder="المخزون" className="rounded-xl border p-3"/><input type="number" min="0" value={variantForm.price} onChange={e => setVariantForm(v => ({...v,price:e.target.value}))} placeholder="سعر خاص اختياري" className="rounded-xl border p-3"/></div><button disabled={variantSaving} onClick={() => void saveVariant()} className="mt-3 rounded-xl bg-orange-500 px-5 py-3 font-black text-white disabled:opacity-50">{variantSaving ? "جارٍ الحفظ..." : editingVariant ? "حفظ التعديلات" : "إضافة Variant"}</button>{editingVariant && <button onClick={() => { setEditingVariant(null); setVariantForm({ size: "", color: "", sku: "", stock: "0", price: "" }); }} className="mr-2 rounded-xl bg-zinc-100 px-5 py-3 font-black">إلغاء التعديل</button>}<div className="mt-6 rounded-2xl border p-4"><h3 className="font-black">صور المنتج</h3><p className="mt-1 text-xs text-zinc-500">JPG / PNG / WebP — حد أقصى 5MB للصورة.</p><label className="mt-3 block cursor-pointer rounded-xl border-2 border-dashed border-orange-200 p-4 text-center font-black text-orange-700"><input type="file" className="hidden" accept="image/jpeg,image/png,image/webp" multiple disabled={uploadingImages} onChange={e=>void uploadImages(e.target.files)}/>{uploadingImages?"جارٍ رفع الصور...":"إضافة صور"}</label>{images.length>0&&<div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">{images.map(image=><div key={image.id} className="relative overflow-hidden rounded-xl border"><img src={image.url} alt={image.alt_ar||""} className="aspect-square w-full object-cover"/><button onClick={()=>void deleteImage(image)} className="absolute left-2 top-2 rounded-lg bg-white/90 px-2 py-1 text-xs font-black text-red-600">حذف</button></div>)}</div>}</div><div className="mt-6 divide-y rounded-2xl border">{variants.length === 0 ? <div className="p-6 text-center text-zinc-500">لا توجد Variants لهذا المنتج.</div> : variants.map(v => <div key={v.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex flex-wrap gap-2 text-sm"><span className="rounded-lg bg-zinc-100 px-3 py-1 font-bold">{v.size || "بدون مقاس"}</span><span className="rounded-lg bg-zinc-100 px-3 py-1 font-bold">{v.color || "بدون لون"}</span><span className="rounded-lg bg-zinc-100 px-3 py-1">SKU: {v.sku || "—"}</span><span className="rounded-lg bg-orange-50 px-3 py-1 font-bold text-orange-700">مخزون: {v.stock}</span>{v.price_override != null && <span className="rounded-lg bg-green-50 px-3 py-1 font-bold text-green-700">{Number(v.price_override).toLocaleString("ar-EG")} ج.م</span>}</div><div className="flex gap-2"><button onClick={() => startEditVariant(v)} className="rounded-xl border border-orange-200 bg-white px-4 py-2 text-sm font-bold text-orange-700">تعديل</button><button onClick={() => void toggleVariant(v)} className="rounded-xl bg-zinc-100 px-4 py-2 text-sm font-bold">{v.is_active ? "نشط" : "مخفي"}</button></div></div>)}</div></>}</div>
           </section>
         )}
