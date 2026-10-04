@@ -3,85 +3,787 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Category, Product } from "@/lib/types";
-import { addCartItem, cartCount, cartTotal, removeCartItem, updateCartQuantity, type CartItem } from "@/lib/cart";
+import {
+  addCartItem,
+  cartCount,
+  cartTotal,
+  removeCartItem,
+  updateCartQuantity,
+  type CartItem,
+} from "@/lib/cart";
+import { selectVariant, uniqueOptions, type VariantLike } from "@/lib/product-variants";
 
-type Variant = { id:string; product_id:string; size:string|null; color:string|null; stock:number; price_override:number|null };
+type Variant = VariantLike & {
+  product_id: string;
+};
+
 type ProductWithVariants = Product & { product_variants?: Variant[] };
 
-const fallbackProducts:Product[]=[
-{id:"1",name_ar:"تيشيرت أطفال قطن",name_en:"Kids Cotton T-Shirt",slug:"kids-cotton-tshirt",description_ar:"تيشيرت مريح مناسب للاستخدام اليومي",description_en:"Comfortable everyday cotton t-shirt",price:249,compare_at_price:299,category_id:null},
-{id:"2",name_ar:"تريننج أولادي",name_en:"Boys Tracksuit",slug:"boys-tracksuit",description_ar:"تريننج عملي ومريح للأطفال",description_en:"Comfortable practical tracksuit",price:499,compare_at_price:599,category_id:null},
-{id:"3",name_ar:"فستان بناتي",name_en:"Girls Dress",slug:"girls-dress",description_ar:"فستان أنيق للأطفال",description_en:"Cute everyday girls dress",price:399,compare_at_price:449,category_id:null},
-{id:"4",name_ar:"طقم أطفال صيفي",name_en:"Kids Summer Set",slug:"kids-summer-set",description_ar:"طقم صيفي خفيف ومريح",description_en:"Lightweight summer set",price:349,compare_at_price:399,category_id:null}
+type Choice = {
+  size: string | null;
+  color: string | null;
+};
+
+const fallbackProducts: Product[] = [
+  {
+    id: "1",
+    name_ar: "تيشيرت أطفال قطن",
+    name_en: "Kids Cotton T-Shirt",
+    slug: "kids-cotton-tshirt",
+    description_ar: "تيشيرت مريح مناسب للاستخدام اليومي",
+    description_en: "Comfortable everyday cotton t-shirt",
+    price: 249,
+    compare_at_price: 299,
+    category_id: null,
+  },
+  {
+    id: "2",
+    name_ar: "تريننج أولادي",
+    name_en: "Boys Tracksuit",
+    slug: "boys-tracksuit",
+    description_ar: "تريننج عملي ومريح للأطفال",
+    description_en: "Comfortable practical tracksuit",
+    price: 499,
+    compare_at_price: 599,
+    category_id: null,
+  },
+  {
+    id: "3",
+    name_ar: "فستان بناتي",
+    name_en: "Girls Dress",
+    slug: "girls-dress",
+    description_ar: "فستان أنيق للأطفال",
+    description_en: "Cute everyday girls dress",
+    price: 399,
+    compare_at_price: 449,
+    category_id: null,
+  },
+  {
+    id: "4",
+    name_ar: "طقم أطفال صيفي",
+    name_en: "Kids Summer Set",
+    slug: "kids-summer-set",
+    description_ar: "طقم صيفي خفيف ومريح",
+    description_en: "Lightweight summer set",
+    price: 349,
+    compare_at_price: 399,
+    category_id: null,
+  },
 ];
 
-const Icon=({children}:{children:React.ReactNode})=><span className="inline-flex">{children}</span>;
+function Icon({
+  name,
+  size = 18,
+}: {
+  name: "user" | "bag" | "menu" | "close" | "search" | "arrow" | "plus" | "minus" | "trash" | "check";
+  size?: number;
+}) {
+  const paths: Record<string, React.ReactNode> = {
+    user: <><circle cx="12" cy="8" r="3.2" /><path d="M5.5 19c.7-3 2.7-4.6 6.5-4.6s5.8 1.6 6.5 4.6" /></>,
+    bag: <><path d="M6 8h12l1 12H5L6 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></>,
+    menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
+    close: <><path d="m6 6 12 12M18 6 6 18" /></>,
+    search: <><circle cx="10.8" cy="10.8" r="6.3" /><path d="m16 16 4 4" /></>,
+    arrow: <><path d="M5 12h13" /><path d="m13 6 6 6-6 6" /></>,
+    plus: <><path d="M12 5v14M5 12h14" /></>,
+    minus: <path d="M5 12h14" />,
+    trash: <><path d="M5 7h14M9 7V4h6v3M8 10v7M12 10v7M16 10v7M6 7l1 13h10l1-13" /></>,
+    check: <path d="m5 12 4 4L19 6" />,
+  };
 
-export default function Home(){
- const [products,setProducts]=useState<Product[]>(fallbackProducts);
- const [categories,setCategories]=useState<Category[]>([]);
- const [variants,setVariants]=useState<Record<string,Variant[]>>({});
- const [q,setQ]=useState("");
- const [cat,setCat]=useState("all");
- const [cart,setCart]=useState<CartItem[]>([]);
- const [cartOpen,setCartOpen]=useState(false);
- const [selected,setSelected]=useState<ProductWithVariants|null>(null);
- const [selectedSize,setSelectedSize]=useState<string|null>(null);
- const [selectedColor,setSelectedColor]=useState<string|null>(null);
- const [qty,setQty]=useState(1);
- const [toast,setToast]=useState("");
+  return (
+    <svg
+      aria-hidden="true"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {paths[name]}
+    </svg>
+  );
+}
 
- useEffect(()=>{try{const saved=localStorage.getItem("elgewaliy-cart");if(saved){const parsed=JSON.parse(saved);setCart(Array.isArray(parsed)?parsed:[])}}catch{}},[]);
- useEffect(()=>{localStorage.setItem("elgewaliy-cart",JSON.stringify(cart))},[cart]);
- useEffect(()=>{(async()=>{const results=await Promise.all([
-   supabase.from("products").select("*").eq("is_active",true).order("created_at",{ascending:false}),
-   supabase.from("categories").select("id,name_ar,name_en,slug").eq("is_active",true).order("sort_order"),
-   supabase.from("product_variants").select("id,product_id,size,color,stock,price_override").eq("is_active",true)
- ]);const p=results[0].data,c=results[1].data,v=results[2].data;if(p?.length)setProducts(p as Product[]);if(c?.length)setCategories(c as Category[]);if(v){const grouped:Record<string,Variant[]>={};(v as Variant[]).forEach(item=>{if(!grouped[item.product_id])grouped[item.product_id]=[];grouped[item.product_id].push(item)});setVariants(grouped)}})()},[]);
- useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(""),2400);return()=>clearTimeout(t)},[toast]);
+function getChoice(product: Product, variants: Record<string, Variant[]>, choices: Record<string, Choice>) {
+  const vs = variants[product.id] ?? [];
+  const options = uniqueOptions(vs);
+  const current = choices[product.id] ?? {
+    size: options.sizes[0] ?? null,
+    color: options.colors[0] ?? null,
+  };
 
- const filtered=useMemo(()=>products.filter(p=>(cat==="all"||p.category_id===cat)&&(p.name_ar.includes(q)||p.name_en.toLowerCase().includes(q.toLowerCase()))),[products,q,cat]);
- const total=cartTotal(cart), count=cartCount(cart);
+  return {
+    variant: selectVariant(vs, current.size, current.color) ?? vs[0] ?? null,
+    options,
+    current,
+  };
+}
 
- function openProduct(p:Product){const vs=variants[p.id]??[];setSelected({...p,product_variants:vs});setSelectedSize(vs[0]?.size??null);setSelectedColor(vs[0]?.color??null);setQty(1)}
- function addSelected(){
-   if(!selected)return;
-   const vs=selected.product_variants??[];
-   const variant=vs.find(v=>(!selectedSize||v.size===selectedSize)&&(!selectedColor||v.color===selectedColor))??vs[0];
-   if(vs.length&&!variant){setToast("اختار المقاس واللون الأول");return}
-   if(variant&&variant.stock<=0){setToast("المقاس ده غير متاح حاليًا");return}
-   const price=Number(variant?.price_override??selected.price);
-   const item={key:selected.id+"-"+(variant?.id??"base"),productId:selected.id,variantId:variant?.id,name_ar:selected.name_ar,name_en:selected.name_en,price,compare_at_price:selected.compare_at_price,size:variant?.size??selectedSize,color:variant?.color??selectedColor};
-   setCart(c=>addCartItem(c,{...item,quantity:qty}));setSelected(null);setCartOpen(true);setToast("اتضافت للسلة ✨");
- }
+export default function Home() {
+  const [products, setProducts] = useState<Product[]>(fallbackProducts);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [variants, setVariants] = useState<Record<string, Variant[]>>({});
+  const [choices, setChoices] = useState<Record<string, Choice>>({});
+  const [q, setQ] = useState("");
+  const [cat, setCat] = useState("all");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [selected, setSelected] = useState<ProductWithVariants | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [qty, setQty] = useState(1);
+  const [toast, setToast] = useState("");
+  const [addedKey, setAddedKey] = useState("");
 
- return <main className="min-h-screen bg-[#fffaf5]">
-  <header className="sticky top-0 z-40 border-b border-orange-100/80 bg-white/85 backdrop-blur-2xl">
-   <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-    <a href="#" className="group flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-orange-500 text-xl font-black text-white shadow-lg shadow-orange-200 transition group-hover:-rotate-3 group-hover:scale-105">ج</span><span><b className="block text-lg tracking-tight">الجويلي</b><small className="text-[10px] font-bold tracking-[.28em] text-orange-500">ELGEWALIY</small></span></a>
-    <nav className="hidden items-center gap-7 text-sm font-bold md:flex"><a href="#products" className="hover:text-orange-600">المتجر</a><a href="#about" className="hover:text-orange-600">ليه الجويلي؟</a><a href="/track" className="hover:text-orange-600">تتبع الطلب</a></nav>
-    <div className="flex items-center gap-2"><a href="/auth" className="hidden size-10 place-items-center rounded-full bg-zinc-100 hover:bg-orange-100 sm:grid">👤</a><button onClick={()=>setCartOpen(true)} className="relative grid size-11 place-items-center rounded-full bg-zinc-950 text-white shadow-lg shadow-zinc-200 transition hover:-translate-y-0.5 hover:bg-orange-500">🛍️{count>0&&<span className="cart-badge absolute -right-1 -top-1">{count}</span>}</button></div>
-   </div>
-  </header>
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("elgewaliy-cart");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setCart(Array.isArray(parsed) ? parsed : []);
+      }
+    } catch {}
+  }, []);
 
-  <section className="relative overflow-hidden"><div className="hero-orb hero-orb-one"/><div className="hero-orb hero-orb-two"/>
-   <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-12 md:grid-cols-[1.02fr_.98fr] md:items-center md:py-20">
-    <div className="reveal"><span className="eyebrow">تشكيلة أطفال مختارة بعناية</span><h1 className="mt-6 text-5xl font-black leading-[1.04] tracking-tight md:text-7xl">لبس يليق<br/><span className="text-orange-500">بكل لحظة.</span></h1><p className="mt-6 max-w-xl text-base leading-8 text-zinc-600 md:text-lg">اختار القطعة، شوف المقاس واللون، وأكمل طلبك في تجربة مصممة تكون سهلة من أول نقرة لحد الاستلام.</p><div className="mt-8 flex flex-wrap gap-3"><a href="#products" className="magnetic rounded-2xl bg-orange-500 px-7 py-4 font-black text-white shadow-xl shadow-orange-200">ابدأ التسوق</a><a href="/auth" className="rounded-2xl border border-zinc-200 bg-white px-7 py-4 font-black hover:border-orange-300 hover:text-orange-600">حسابي ↗</a></div><div className="mt-8 flex gap-7 text-sm text-zinc-500"><span><b className="block text-lg text-zinc-900">مقاسات متنوعة</b>للأطفال</span><span><b className="block text-lg text-zinc-900">اختيار آمن</b>قبل الدفع</span></div></div>
-    <div className="reveal relative" style={{animationDelay:".12s"}}><div className="hero-fashion-card"><div className="relative flex min-h-[410px] flex-col justify-between p-7 text-white"><div className="flex items-center justify-between"><span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold">NEW SEASON</span><span className="text-sm font-bold">2026</span></div><div className="relative mx-auto w-full max-w-sm"><div className="fashion-shirt mx-auto"><div className="shirt-collar"/><div className="shirt-seam"/></div><div className="absolute -right-2 top-8 rounded-2xl bg-white px-4 py-3 text-xs font-black text-zinc-900 shadow-xl rotate-3">راحة طول اليوم</div><div className="absolute -left-3 bottom-8 rounded-2xl bg-zinc-950/90 px-4 py-3 text-xs font-black text-white shadow-xl -rotate-3">اختار مقاسك</div></div><div className="flex items-end justify-between"><p className="max-w-[230px] text-sm leading-6 text-white/80">قطع يومية مريحة وشكلها حلو.</p><span className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-orange-600">تسوق الآن ↗</span></div></div></div></div>
-   </div>
-  </section>
+  useEffect(() => {
+    localStorage.setItem("elgewaliy-cart", JSON.stringify(cart));
+  }, [cart]);
 
-  <section id="products" className="mx-auto max-w-7xl px-4 py-14 md:py-20"><div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between"><div><span className="section-kicker">SHOP / 01</span><h2 className="mt-1 text-3xl font-black md:text-4xl">اختار اللي يعجبك</h2><p className="mt-2 text-zinc-500">اضغط على أي قطعة عشان تختار المقاس واللون قبل الإضافة.</p></div><div className="relative w-full md:w-80"><span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400">⌕</span><input value={q} onChange={e=>setQ(e.target.value)} placeholder="ابحث عن منتج..." className="w-full rounded-2xl border border-zinc-200 bg-white py-3.5 pr-11 pl-4 outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100"/></div></div>
-   <div className="mb-8 flex gap-2 overflow-x-auto pb-2">{["all",...categories.map(c=>c.id)].map(id=><button key={id} onClick={()=>setCat(id)} className={cat===id?"category-pill active":"category-pill"}>{id==="all"?"الكل":categories.find(c=>c.id===id)?.name_ar}</button>)}</div>
-   <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{filtered.map((p,i)=><article key={p.id} className="product-card reveal" style={{animationDelay:(i*.06)+"s"}} onClick={()=>openProduct(p)}><div className="product-visual"><span className="product-tag">جديد</span><div className="product-shape"><div className="product-sleeve left"/><div className="product-sleeve right"/><div className="product-neck"/></div><div className="product-float-label">عرض سريع ↗</div></div><div className="p-5"><div className="flex items-start justify-between gap-3"><h3 className="font-black">{p.name_ar}</h3>{p.compare_at_price&&<span className="text-xs text-zinc-400 line-through">{p.compare_at_price} ج.م</span>}</div><p className="mt-2 min-h-10 text-sm leading-6 text-zinc-500">{p.description_ar}</p><div className="mt-5 flex items-center justify-between"><b className="text-xl text-orange-600">{p.price} <small className="text-xs">ج.م</small></b><button onClick={e=>{e.stopPropagation();openProduct(p)}} className="add-button">اختار +</button></div></div></article>)}</div>
-  </section>
+  useEffect(() => {
+    (async () => {
+      const [productsResult, categoriesResult, variantsResult] = await Promise.all([
+        supabase
+          .from("products")
+          .select("*")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("categories")
+          .select("id,name_ar,name_en,slug")
+          .eq("is_active", true)
+          .order("sort_order"),
+        supabase
+          .from("product_variants")
+          .select("id,product_id,size,color,stock,price_override")
+          .eq("is_active", true),
+      ]);
 
-  <section id="about" className="mx-auto max-w-7xl px-4 pb-16 md:pb-24"><div className="overflow-hidden rounded-[34px] bg-zinc-950 p-7 text-white md:p-10"><div className="grid gap-10 md:grid-cols-[.8fr_1.2fr] md:items-end"><div><span className="section-kicker text-orange-400">WHY ELGEWALIY / 02</span><h2 className="mt-3 text-3xl font-black md:text-5xl">تجربة شراء<br/><span className="text-orange-400">بسيطة وسريعة.</span></h2></div><div className="grid gap-3 sm:grid-cols-3">{[["01","اختيار واضح","بحث وتصنيفات تساعدك توصل للي عايزه."],["02","اختيار المقاس","المقاس واللون جزء من نفس تجربة المنتج."],["03","تتبع مستمر","حسابك يفضل معاك لمتابعة طلباتك."]].map(([n,t,d])=><div key={n} className="rounded-2xl bg-white/5 p-5 transition hover:-translate-y-1 hover:bg-white/10"><b className="text-orange-400">{n}</b><h3 className="mt-4 font-black">{t}</h3><p className="mt-2 text-sm leading-6 text-white/55">{d}</p></div>)}</div></div></div></section>
-  <footer className="border-t border-orange-100 bg-white"><div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-zinc-500 md:flex-row md:items-center md:justify-between"><span>© {new Date().getFullYear()} الجويلي — Elgewaliy</span><span>ملابس أطفال • أولاد • بنات</span></div></footer>
+      if (productsResult.data?.length) setProducts(productsResult.data as Product[]);
+      if (categoriesResult.data?.length) setCategories(categoriesResult.data as Category[]);
+      if (variantsResult.data) {
+        const grouped: Record<string, Variant[]> = {};
+        (variantsResult.data as Variant[]).forEach((item) => {
+          if (!grouped[item.product_id]) grouped[item.product_id] = [];
+          grouped[item.product_id].push(item);
+        });
+        setVariants(grouped);
 
-  {cartOpen&&<div className="fixed inset-0 z-50 bg-zinc-950/55 p-3 backdrop-blur-md" onClick={()=>setCartOpen(false)}><aside onClick={e=>e.stopPropagation()} className="cart-panel"><div className="flex items-center justify-between"><div><span className="section-kicker">YOUR CART</span><h2 className="mt-1 text-2xl font-black">السلة</h2></div><button onClick={()=>setCartOpen(false)} className="grid size-10 place-items-center rounded-full bg-zinc-100 hover:bg-orange-100">✕</button></div>{cart.length===0?<div className="flex h-[70vh] flex-col items-center justify-center text-center"><div className="grid size-20 place-items-center rounded-full bg-orange-50 text-orange-500 text-3xl">🛍️</div><h3 className="mt-5 text-xl font-black">السلة لسه فاضية</h3><p className="mt-2 text-sm text-zinc-500">اختار قطعة، المقاس واللون، وابدأ.</p></div>:<><div className="mt-6 space-y-3">{cart.map(item=><div key={item.key} className="cart-item"><div className="cart-thumb"><div className="mini-shirt"/></div><div className="min-w-0 flex-1"><b className="block truncate">{item.name_ar}</b><span className="text-xs text-zinc-500">{item.size&&("المقاس "+item.size+" ")}{item.color&&("• "+item.color)}</span><div className="mt-2 font-black text-orange-600">{item.price} ج.م</div></div><div className="flex items-center gap-1 rounded-xl bg-zinc-100 p-1"><button onClick={()=>setCart(c=>updateCartQuantity(c,item.key,item.quantity-1))} className="grid size-7 place-items-center rounded-lg bg-white">−</button><span className="min-w-5 text-center text-sm font-black">{item.quantity}</span><button onClick={()=>setCart(c=>updateCartQuantity(c,item.key,item.quantity+1))} className="grid size-7 place-items-center rounded-lg bg-white">+</button></div><button onClick={()=>setCart(c=>removeCartItem(c,item.key))} className="text-xs text-zinc-400 hover:text-red-500">حذف</button></div>)}</div><div className="mt-auto border-t pt-5"><div className="flex justify-between font-black"><span>الإجمالي</span><span className="text-xl text-orange-600">{total} ج.م</span></div><a href="/checkout" className="mt-5 block rounded-2xl bg-orange-500 py-4 text-center font-black text-white shadow-lg shadow-orange-200 transition hover:-translate-y-0.5">إتمام الطلب ↗</a></div></>}</aside></div>}
+        const initial: Record<string, Choice> = {};
+        Object.entries(grouped).forEach(([productId, list]) => {
+          const { sizes, colors } = uniqueOptions(list);
+          initial[productId] = { size: sizes[0] ?? null, color: colors[0] ?? null };
+        });
+        setChoices(initial);
+      }
+    })();
+  }, []);
 
-  {selected&&<div className="fixed inset-0 z-[60] grid place-items-end bg-zinc-950/55 p-3 backdrop-blur-md md:place-items-center" onClick={()=>setSelected(null)}><section onClick={e=>e.stopPropagation()} className="quick-view reveal"><button onClick={()=>setSelected(null)} className="absolute left-4 top-4 z-10 grid size-10 place-items-center rounded-full bg-white/90 shadow">✕</button><div className="grid md:grid-cols-2"><div className="quick-visual"><div className="product-shape large"><div className="product-sleeve left"/><div className="product-sleeve right"/><div className="product-neck"/></div></div><div className="p-7 md:p-9"><span className="section-kicker">PRODUCT / DETAILS</span><h2 className="mt-2 text-3xl font-black">{selected.name_ar}</h2><p className="mt-3 leading-7 text-zinc-500">{selected.description_ar}</p><div className="mt-5 text-2xl font-black text-orange-600">{selected.price} ج.م</div>{(selected.product_variants??[]).length>0?<><div className="mt-7"><div className="mb-3 text-sm font-black">المقاس</div><div className="flex flex-wrap gap-2">{Array.from(new Set((selected.product_variants??[]).map(v=>v.size).filter(Boolean))).map(size=><button key={size} onClick={()=>setSelectedSize(size)} className={selectedSize===size?"choice active":"choice"}>{size}</button>)}</div></div><div className="mt-5"><div className="mb-3 text-sm font-black">اللون</div><div className="flex flex-wrap gap-2">{Array.from(new Set((selected.product_variants??[]).map(v=>v.color).filter(Boolean))).map(color=><button key={color} onClick={()=>setSelectedColor(color)} className={selectedColor===color?"choice active":"choice"}>{color}</button>)}</div></div></>:<p className="mt-6 rounded-2xl bg-orange-50 p-4 text-sm text-orange-700">اختيارات المقاس واللون ستظهر هنا بمجرد إضافتها للمنتج.</p>}<div className="mt-6 flex items-center gap-2"><div className="flex items-center rounded-2xl bg-zinc-100 p-1"><button onClick={()=>setQty(Math.max(1,qty-1))} className="grid size-10 place-items-center rounded-xl bg-white">−</button><span className="w-10 text-center font-black">{qty}</span><button onClick={()=>setQty(qty+1)} className="grid size-10 place-items-center rounded-xl bg-white">+</button></div><button onClick={addSelected} className="flex-1 rounded-2xl bg-orange-500 py-3.5 font-black text-white shadow-lg shadow-orange-200 transition hover:-translate-y-0.5">أضف للسلة</button></div></div></div></section></div>}
-  {toast&&<div className="fixed bottom-5 left-1/2 z-[80] -translate-x-1/2 rounded-full bg-zinc-950 px-5 py-3 text-sm font-black text-white shadow-2xl toast-pop">{toast}</div>}
- </main>
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(""), 2600);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  useEffect(() => {
+    if (!addedKey) return;
+    const timer = setTimeout(() => setAddedKey(""), 1100);
+    return () => clearTimeout(timer);
+  }, [addedKey]);
+
+  const filtered = useMemo(
+    () =>
+      products.filter(
+        (product) =>
+          (cat === "all" || product.category_id === cat) &&
+          (product.name_ar.includes(q) || product.name_en.toLowerCase().includes(q.toLowerCase())),
+      ),
+    [products, q, cat],
+  );
+
+  const total = cartTotal(cart);
+  const count = cartCount(cart);
+
+  function openProduct(product: Product) {
+    const vs = variants[product.id] ?? [];
+    const options = uniqueOptions(vs);
+    const current = choices[product.id] ?? {
+      size: options.sizes[0] ?? null,
+      color: options.colors[0] ?? null,
+    };
+
+    setSelected({
+      ...product,
+      product_variants: vs,
+    });
+    setSelectedSize(current.size);
+    setSelectedColor(current.color);
+    setQty(1);
+  }
+
+  function addProduct(
+    product: Product,
+    size: string | null,
+    color: string | null,
+    quantity = 1,
+  ) {
+    const vs = variants[product.id] ?? [];
+    const variant = selectVariant(vs, size, color) ?? vs[0] ?? null;
+
+    if (vs.length > 0 && !variant) {
+      setToast("اختار المقاس واللون المناسب الأول");
+      return;
+    }
+
+    if (variant && variant.stock <= 0) {
+      setToast("الاختيار ده غير متاح حاليًا");
+      return;
+    }
+
+    const price = Number(variant?.price_override ?? product.price);
+    const key = product.id + "-" + (variant?.id ?? "base");
+    const item: Omit<CartItem, "quantity"> = {
+      key,
+      productId: product.id,
+      variantId: variant?.id,
+      name_ar: product.name_ar,
+      name_en: product.name_en,
+      price,
+      compare_at_price: product.compare_at_price,
+      size: variant?.size ?? size,
+      color: variant?.color ?? color,
+    };
+
+    setCart((current) => addCartItem(current, { ...item, quantity }));
+    setAddedKey(key);
+    setToast("اتضافت للسلة");
+  }
+
+  function addSelected() {
+    if (!selected) return;
+    addProduct(selected, selectedSize, selectedColor, qty);
+    setSelected(null);
+    setCartOpen(true);
+  }
+
+  return (
+    <main className="store-shell" dir="rtl">
+      <div className="announcement-bar">
+        <span>تجربة أبسط لاختيار اللبس المناسب للأطفال</span>
+        <a href="#products">اكتشف التشكيلة <Icon name="arrow" size={14} /></a>
+      </div>
+
+      <header className="site-header">
+        <div className="nav-wrap">
+          <a href="#" className="brand-lockup" onClick={() => setMobileMenu(false)}>
+            <span className="brand-mark">ج</span>
+            <span>
+              <b>الجويلي</b>
+              <small>ELGEWALIY</small>
+            </span>
+          </a>
+
+          <nav className="main-nav">
+            <a href="#products">المتجر</a>
+            <a href="#about">ليه الجويلي؟</a>
+            <a href="/track">تتبع الطلب</a>
+          </nav>
+
+          <div className="nav-actions">
+            <a href="/auth" className="icon-action account-action" aria-label="حسابي">
+              <Icon name="user" />
+            </a>
+            <button
+              className={"icon-action cart-action" + (addedKey ? " cart-bump" : "")}
+              onClick={() => setCartOpen(true)}
+              aria-label="السلة"
+            >
+              <Icon name="bag" />
+              {count > 0 && <span className="cart-badge">{count}</span>}
+            </button>
+            <button
+              className="icon-action mobile-menu-button"
+              aria-label="القائمة"
+              onClick={() => setMobileMenu((open) => !open)}
+            >
+              <Icon name={mobileMenu ? "close" : "menu"} />
+            </button>
+          </div>
+        </div>
+
+        {mobileMenu && (
+          <div className="mobile-nav">
+            <a href="#products" onClick={() => setMobileMenu(false)}>المتجر</a>
+            <a href="#about" onClick={() => setMobileMenu(false)}>ليه الجويلي؟</a>
+            <a href="/track">تتبع الطلب</a>
+            <a href="/auth">تسجيل الدخول / حسابي</a>
+          </div>
+        )}
+      </header>
+
+      <section className="hero-section">
+        <div className="hero-glow hero-glow-one" />
+        <div className="hero-glow hero-glow-two" />
+
+        <div className="hero-grid">
+          <div className="hero-copy reveal">
+            <span className="eyebrow">KIDSWEAR / NEW SEASON</span>
+            <h1>لبس يليق<br /><em>بكل لحظة.</em></h1>
+            <p>
+              اختار القطعة، حدد المقاس واللون، وشوف طلبك بوضوح قبل ما تكمل.
+              تجربة خفيفة وسريعة معمولة للبيت والموبايل.
+            </p>
+
+            <div className="hero-actions">
+              <a href="#products" className="primary-cta">ابدأ التسوق <Icon name="arrow" /></a>
+              <a href="/auth" className="secondary-cta">حسابي</a>
+            </div>
+
+            <div className="hero-microcopy">
+              <span><b>01</b> مقاسات وألوان</span>
+              <span><b>02</b> سلة واضحة</span>
+              <span><b>03</b> متابعة للطلب</span>
+            </div>
+          </div>
+
+          <div className="hero-art reveal" style={{ animationDelay: ".12s" }}>
+            <div className="hero-art-top">
+              <span>ELGEWALIY</span>
+              <span>06 — 26</span>
+            </div>
+
+            <div className="hero-poster">
+              <div className="poster-shape poster-shape-back" />
+              <div className="poster-shape poster-shape-main">
+                <div className="poster-collar" />
+                <div className="poster-label">PLAY / MOVE / GROW</div>
+              </div>
+              <span className="floating-note note-one">مريح طول اليوم</span>
+              <span className="floating-note note-two">اختار مقاسك</span>
+            </div>
+
+            <div className="hero-art-bottom">
+              <span>Kidswear essentials</span>
+              <span className="hero-scroll-dot" />
+              <span>01 / 04</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="benefits-strip" aria-label="مميزات المتجر">
+        <div><span>01</span><b>اختيار واضح</b><small>المقاس واللون قبل الإضافة</small></div>
+        <div><span>02</span><b>حسابك محفوظ</b><small>طلباتك في مكان واحد</small></div>
+        <div><span>03</span><b>تجربة موبايل</b><small>سريعة وسلسة من أول نقرة</small></div>
+      </section>
+
+      <section id="products" className="catalog-section">
+        <div className="section-head">
+          <div>
+            <span className="section-kicker">SHOP / 01</span>
+            <h2>اختار القطعة</h2>
+            <p>حدد المقاس واللون مباشرة من الكارت أو افتح العرض الكامل.</p>
+          </div>
+
+          <div className="search-box">
+            <Icon name="search" size={17} />
+            <input value={q} onChange={(event) => setQ(event.target.value)} placeholder="ابحث عن منتج..." />
+            {q && <button aria-label="مسح البحث" onClick={() => setQ("")}><Icon name="close" size={15} /></button>}
+          </div>
+        </div>
+
+        <div className="category-row">
+          {["all", ...categories.map((category) => category.id)].map((id) => (
+            <button
+              key={id}
+              onClick={() => setCat(id)}
+              className={"category-pill" + (cat === id ? " active" : "")}
+            >
+              {id === "all" ? "الكل" : categories.find((category) => category.id === id)?.name_ar}
+            </button>
+          ))}
+        </div>
+
+        <div className="product-grid">
+          {filtered.map((product, index) => {
+            const state = getChoice(product, variants, choices);
+            const key = product.id + "-" + (state.variant?.id ?? "base");
+
+            return (
+              <article
+                key={product.id}
+                className="product-card reveal"
+                style={{ animationDelay: index * 0.055 + "s" }}
+                onClick={() => openProduct(product)}
+              >
+                <div className="product-media">
+                  <div className="media-meta">
+                    <span className="new-chip">NEW</span>
+                    {state.variant?.stock !== undefined && state.variant.stock <= 2 && state.variant.stock > 0 && (
+                      <span className="stock-chip">آخر قطع</span>
+                    )}
+                  </div>
+
+                  <div className="product-stage">
+                    <div className="hanger" />
+                    <div className="product-shape">
+                      <span className="shirt-neck" />
+                      <span className="shirt-seam" />
+                    </div>
+                    <span className="visual-copy">ELGEWALIY</span>
+                  </div>
+
+                  <button
+                    className="quick-view-button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openProduct(product);
+                    }}
+                  >
+                    عرض التفاصيل <Icon name="arrow" size={14} />
+                  </button>
+                </div>
+
+                <div className="product-content">
+                  <div className="product-heading">
+                    <div>
+                      <span className="product-type">KIDSWEAR</span>
+                      <h3>{product.name_ar}</h3>
+                    </div>
+                    <button
+                      className={"mini-add" + (addedKey === key ? " is-added" : "")}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        addProduct(product, state.current.size, state.current.color);
+                      }}
+                    >
+                      {addedKey === key ? <Icon name="check" size={17} /> : <Icon name="plus" size={17} />}
+                    </button>
+                  </div>
+
+                  <p>{product.description_ar}</p>
+
+                  <div className="price-row">
+                    <strong>{Number(state.variant?.price_override ?? product.price)} <small>ج.م</small></strong>
+                    {product.compare_at_price && <del>{product.compare_at_price} ج.م</del>}
+                  </div>
+
+                  {state.options.sizes.length > 0 && (
+                    <div className="selector-line">
+                      <span>المقاس</span>
+                      <div className="selector-options">
+                        {state.options.sizes.slice(0, 4).map((size) => (
+                          <button
+                            key={size}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setChoices((current) => ({
+                                ...current,
+                                [product.id]: { ...state.current, size },
+                              }));
+                            }}
+                            className={state.current.size === size ? "size-chip active" : "size-chip"}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {state.options.colors.length > 0 && (
+                    <div className="selector-line color-line">
+                      <span>اللون</span>
+                      <div className="color-options">
+                        {state.options.colors.slice(0, 4).map((color) => (
+                          <button
+                            key={color}
+                            title={color}
+                            aria-label={color}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setChoices((current) => ({
+                                ...current,
+                                [product.id]: { ...state.current, color },
+                              }));
+                            }}
+                            className={state.current.color === color ? "color-dot active" : "color-dot"}
+                          >
+                            <i />
+                          </button>
+                        ))}
+                        <span className="color-label">{state.current.color}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    className={"card-add-cta" + (addedKey === key ? " is-added" : "")}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      addProduct(product, state.current.size, state.current.color);
+                    }}
+                  >
+                    {addedKey === key ? "اتضافت للسلة" : "أضف للسلة"}
+                    <Icon name={addedKey === key ? "check" : "arrow"} size={16} />
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        {filtered.length === 0 && (
+          <div className="empty-results">
+            <span>⌕</span>
+            <h3>مفيش نتائج بالمواصفات دي</h3>
+            <p>جرّب كلمة بحث مختلفة أو ارجع للتصنيف كله.</p>
+            <button onClick={() => { setQ(""); setCat("all"); }}>عرض كل المنتجات</button>
+          </div>
+        )}
+      </section>
+
+      <section id="about" className="brand-section">
+        <div className="brand-panel">
+          <div className="brand-copy">
+            <span className="section-kicker light">WHY ELGEWALIY / 02</span>
+            <h2>التفاصيل الصغيرة<br />هي اللي بتفرق.</h2>
+            <p>
+              من اختيار المنتج للمقاس واللون، لحد السلة والحساب، كل خطوة هنا هدفها
+              تقلل الحيرة وتخلي تجربة الشراء مريحة.
+            </p>
+            <a href="/auth" className="brand-link">ادخل حسابك <Icon name="arrow" size={15} /></a>
+          </div>
+
+          <div className="brand-features">
+            {[
+              ["01", "المقاس في نفس الكارت", "مش محتاج تفتح صفحة ثانية عشان تختار الأساسيات."],
+              ["02", "السلة مش مجرد رقم", "تشوف القطع والاختيارات والكميات في drawer واضح."],
+              ["03", "حسابك معاك", "سجل دخولك وراجع بياناتك وطلباتك من مكان واحد."],
+            ].map(([number, title, description]) => (
+              <div className="feature-card" key={number}>
+                <span>{number}</span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <footer className="site-footer">
+        <div>
+          <span className="footer-mark">ج</span>
+          <div>
+            <b>الجويلي</b>
+            <small>Kidswear essentials</small>
+          </div>
+        </div>
+        <span>© {new Date().getFullYear()} Elgewaliy</span>
+      </footer>
+
+      {cartOpen && (
+        <div className="overlay" onClick={() => setCartOpen(false)}>
+          <aside className="cart-drawer" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-head">
+              <div>
+                <span className="section-kicker">YOUR BAG</span>
+                <h2>السلة <small>{count} قطعة</small></h2>
+              </div>
+              <button className="close-button" onClick={() => setCartOpen(false)} aria-label="إغلاق">
+                <Icon name="close" />
+              </button>
+            </div>
+
+            {cart.length === 0 ? (
+              <div className="cart-empty">
+                <div className="empty-bag"><Icon name="bag" size={28} /></div>
+                <h3>السلة لسه فاضية</h3>
+                <p>اختار قطعة والمقاس واللون، وهتظهر هنا بشكل مرتب.</p>
+                <button onClick={() => setCartOpen(false)}>ارجع للمتجر</button>
+              </div>
+            ) : (
+              <>
+                <div className="cart-list">
+                  {cart.map((item) => (
+                    <div className="cart-row" key={item.key}>
+                      <div className="cart-thumb">
+                        <div className="mini-shirt" />
+                      </div>
+
+                      <div className="cart-info">
+                        <span>{item.name_ar}</span>
+                        <small>
+                          {item.size ? "المقاس " + item.size : ""}
+                          {item.size && item.color ? " • " : ""}
+                          {item.color ?? ""}
+                        </small>
+                        <strong>{item.price} ج.م</strong>
+                      </div>
+
+                      <div className="quantity-control">
+                        <button
+                          onClick={() => setCart((current) => updateCartQuantity(current, item.key, item.quantity - 1))}
+                          aria-label="إنقاص الكمية"
+                        >
+                          <Icon name="minus" size={14} />
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button
+                          onClick={() => setCart((current) => updateCartQuantity(current, item.key, item.quantity + 1))}
+                          aria-label="زيادة الكمية"
+                        >
+                          <Icon name="plus" size={14} />
+                        </button>
+                      </div>
+
+                      <button
+                        className="remove-button"
+                        onClick={() => setCart((current) => removeCartItem(current, item.key))}
+                        aria-label="حذف المنتج"
+                      >
+                        <Icon name="trash" size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="drawer-summary">
+                  <div className="summary-line"><span>الإجمالي</span><strong>{total} ج.م</strong></div>
+                  <a href="/checkout" className="checkout-button">إتمام الطلب <Icon name="arrow" /></a>
+                  <small>راجع المقاس واللون قبل تأكيد الطلب.</small>
+                </div>
+              </>
+            )}
+          </aside>
+        </div>
+      )}
+
+      {selected && (
+        <div className="overlay modal-overlay" onClick={() => setSelected(null)}>
+          <section className="product-modal" onClick={(event) => event.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSelected(null)} aria-label="إغلاق">
+              <Icon name="close" />
+            </button>
+
+            <div className="modal-visual">
+              <span className="modal-sup">ELGEWALIY / 2026</span>
+              <div className="product-shape large">
+                <span className="shirt-neck" />
+                <span className="shirt-seam" />
+              </div>
+              <span className="modal-vertical">KIDSWEAR ESSENTIALS</span>
+            </div>
+
+            <div className="modal-content">
+              <span className="product-type">PRODUCT / DETAILS</span>
+              <h2>{selected.name_ar}</h2>
+              <p>{selected.description_ar}</p>
+
+              {(() => {
+                const options = uniqueOptions(selected.product_variants ?? []);
+                const selectedVariant =
+                  selectVariant(selected.product_variants ?? [], selectedSize, selectedColor) ??
+                  selected.product_variants?.[0] ??
+                  null;
+
+                return (
+                  <>
+                    <div className="modal-price">
+                      {Number(selectedVariant?.price_override ?? selected.price)} <small>ج.م</small>
+                    </div>
+
+                    {options.sizes.length > 0 && (
+                      <div className="modal-selector">
+                        <div><b>المقاس</b><span>{selectedSize}</span></div>
+                        <div className="modal-options">
+                          {options.sizes.map((size) => (
+                            <button
+                              key={size}
+                              onClick={() => setSelectedSize(size)}
+                              className={selectedSize === size ? "size-chip active" : "size-chip"}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {options.colors.length > 0 && (
+                      <div className="modal-selector">
+                        <div><b>اللون</b><span>{selectedColor}</span></div>
+                        <div className="modal-colors">
+                          {options.colors.map((color) => (
+                            <button
+                              key={color}
+                              onClick={() => setSelectedColor(color)}
+                              className={selectedColor === color ? "color-pill active" : "color-pill"}
+                            >
+                              {color}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedVariant?.stock !== undefined && (
+                      <div className="availability">
+                        <span className={selectedVariant.stock > 0 ? "available-dot" : "unavailable-dot"} />
+                        {selectedVariant.stock > 0 ? "متاح دلوقتي" : "غير متاح حاليًا"}
+                      </div>
+                    )}
+
+                    <div className="modal-bottom">
+                      <div className="quantity-control big">
+                        <button onClick={() => setQty(Math.max(1, qty - 1))}><Icon name="minus" /></button>
+                        <span>{qty}</span>
+                        <button onClick={() => setQty(qty + 1)}><Icon name="plus" /></button>
+                      </div>
+                      <button className="modal-add" onClick={addSelected}>
+                        أضف للسلة <Icon name="arrow" />
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {toast && (
+        <div className="toast">
+          <span className="toast-check"><Icon name="check" size={15} /></span>
+          <div>
+            <b>{toast}</b>
+            <small>تم تحديث السلة</small>
+          </div>
+          <button onClick={() => setCartOpen(true)}>عرض السلة</button>
+        </div>
+      )}
+
+      {count > 0 && !cartOpen && (
+        <button className="mobile-cart-bar" onClick={() => setCartOpen(true)}>
+          <span><Icon name="bag" size={17} /> {count} قطعة</span>
+          <strong>{total} ج.م</strong>
+          <i><Icon name="arrow" size={16} /></i>
+        </button>
+      )}
+    </main>
+  );
 }
