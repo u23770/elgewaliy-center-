@@ -262,18 +262,18 @@ export default function Home() {
     size: string | null,
     color: string | null,
     quantity = 1,
-  ) {
+  ): boolean {
     const vs = variants[product.id] ?? [];
     const variant = selectVariant(vs, size, color);
 
     if (vs.length > 0 && !variant) {
       setToast("الاختيار ده مش متاح بالمقاس واللون دول");
-      return;
+      return false;
     }
 
     if (variant && variant.stock <= 0) {
       setToast("الاختيار ده غير متاح حاليًا");
-      return;
+      return false;
     }
 
     const price = Number(variant?.price_override ?? product.price);
@@ -293,13 +293,49 @@ export default function Home() {
     setCart((current) => addCartItem(current, { ...item, quantity }));
     setAddedKey(key);
     setToast("اتضافت للسلة");
+    return true;
   }
 
   function addSelected() {
     if (!selected) return;
-    addProduct(selected, selectedSize, selectedColor, qty);
+    const added = addProduct(selected, selectedSize, selectedColor, qty);
+    if (!added) return;
     setSelected(null);
     setCartOpen(true);
+  }
+
+  function chooseSize(product: Product, size: string) {
+    const vs = variants[product.id] ?? [];
+    const current = choices[product.id] ?? getDefaultChoice(vs);
+    const exact = selectVariant(vs, size, current.color);
+    const replacement =
+      exact ?? vs.find((variant) => variant.size === size && variant.stock > 0) ??
+      vs.find((variant) => variant.size === size) ?? null;
+
+    setChoices((state) => ({
+      ...state,
+      [product.id]: {
+        size,
+        color: replacement?.color ?? current.color,
+      },
+    }));
+  }
+
+  function chooseColor(product: Product, color: string) {
+    const vs = variants[product.id] ?? [];
+    const current = choices[product.id] ?? getDefaultChoice(vs);
+    const exact = selectVariant(vs, current.size, color);
+    const replacement =
+      exact ?? vs.find((variant) => variant.color === color && variant.stock > 0) ??
+      vs.find((variant) => variant.color === color) ?? null;
+
+    setChoices((state) => ({
+      ...state,
+      [product.id]: {
+        size: replacement?.size ?? current.size,
+        color,
+      },
+    }));
   }
 
   return (
@@ -533,10 +569,7 @@ export default function Home() {
                             key={size}
                             onClick={(event) => {
                               event.stopPropagation();
-                              setChoices((current) => ({
-                                ...current,
-                                [product.id]: { ...state.current, size },
-                              }));
+                              chooseSize(product, size);
                             }}
                             className={state.current.size === size ? "size-chip active" : "size-chip"}
                           >
@@ -558,10 +591,7 @@ export default function Home() {
                             aria-label={color}
                             onClick={(event) => {
                               event.stopPropagation();
-                              setChoices((current) => ({
-                                ...current,
-                                [product.id]: { ...state.current, color },
-                              }));
+                              chooseColor(product, color);
                             }}
                             className={state.current.color === color ? "color-dot active" : "color-dot"}
                           >
