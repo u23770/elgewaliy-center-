@@ -664,6 +664,8 @@ a{text-decoration:none;color:inherit}
   width:53px;height:61px;display:grid;place-items:center;
   border-radius:14px;background:#ffecd9;
 }
+
+.cart-real-image{width:100%;height:100%;object-fit:cover;border-radius:14px;display:block}
 .mini-shirt{
   position:relative;width:28px;height:35px;
   border-radius:8px 8px 10px 10px;background:var(--orange);
