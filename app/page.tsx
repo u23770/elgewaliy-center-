@@ -17,6 +17,8 @@ export default function Home(){
  const [q,setQ]=useState("");
  const [cat,setCat]=useState("all");
  const [cart,setCart]=useState<Product[]>([]);
+ useEffect(()=>{try{const saved=localStorage.getItem("elgewaliy-cart");if(saved)setCart(JSON.parse(saved))}catch{}},[]);
+ useEffect(()=>{try{localStorage.setItem("elgewaliy-cart",JSON.stringify(cart))}catch{}},[cart]);
  const [open,setOpen]=useState(false);
 
  useEffect(()=>{(async()=>{
