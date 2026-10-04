@@ -694,7 +694,28 @@ export default function Home() {
                   {cart.map((item) => (
                     <div className="cart-row" key={item.key}>
                       <div className="cart-thumb">
-                        <div className="mini-shirt" />
+                        {(() => {
+                          const cartProduct = products.find(
+                            (product) => product.id === item.productId,
+                          );
+                          const cartImage = cartProduct
+                            ? getProductImage(
+                                cartProduct.slug,
+                                productImages[cartProduct.id] ?? [],
+                              )
+                            : null;
+
+                          return cartImage ? (
+                            <img
+                              className="cart-real-image"
+                              src={cartImage}
+                              alt={item.name_ar}
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="mini-shirt" />
+                          );
+                        })()}
                       </div>
 
                       <div className="cart-info">
