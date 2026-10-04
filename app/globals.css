@@ -897,3 +897,6 @@ a{text-decoration:none;color:inherit}
 }
 
 @keyframes mobileBarIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+
+.product-real-image{width:100%;height:100%;object-fit:cover;border-radius:24px;display:block;position:relative;z-index:2}.image-hanger{display:none}.product-real-image + .image-hanger{display:none}
