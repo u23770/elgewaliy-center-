@@ -92,6 +92,7 @@ export default function Checkout() {
     }
 
     const result = data as {
+      id: string;
       order_number: string;
       tracking_token: string;
     };
