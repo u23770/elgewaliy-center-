@@ -20,6 +20,7 @@ export default function ProductPage() {
   const [color, setColor] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
   const [message, setMessage] = useState("");
+  const [activeImage, setActiveImage] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -36,16 +37,19 @@ export default function ProductPage() {
       setSize(options.sizes[0] ?? null);
       setColor(options.colors[0] ?? null);
       setImages((imgs || []) as Image[]);
+      setActiveImage(0);
     })();
   }, [params.slug]);
 
   const options = useMemo(() => uniqueOptions(variants), [variants]);
-  const selectedVariant = useMemo(() => selectVariant(variants, size, color) ?? variants[0] ?? null, [variants, size, color]);
+  const selectedVariant = useMemo(() => selectVariant(variants, size, color), [variants, size, color]);
+  const hasVariants = variants.length > 0;
+  const availableStock = selectedVariant?.stock ?? 0;
   const price = Number(selectedVariant?.price_override ?? product?.price ?? 0);
 
   function addToCart() {
     if (!product) return;
-    if (variants.length && !selectedVariant) { setMessage("اختار المقاس واللون المناسب."); return; }
+    if (hasVariants && !selectedVariant) { setMessage("الاختيار الحالي غير متاح. اختار المقاس واللون المتاحين."); return; }
     if (selectedVariant && selectedVariant.stock < qty) { setMessage("الكمية المطلوبة غير متاحة."); return; }
 
     const item: CartItem = {
@@ -77,7 +81,7 @@ export default function ProductPage() {
           <div className="overflow-hidden rounded-[2rem] bg-[#fff1e5] aspect-square">
             {images[0] ? <img src={images[0].url} alt={images[0].alt_ar || product.name_ar} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-8xl font-black text-orange-200">ج</div>}
           </div>
-          {images.length > 1 && <div className="mt-3 grid grid-cols-4 gap-3">{images.map(img => <img key={img.id} src={img.url} alt={img.alt_ar || ""} className="aspect-square rounded-2xl object-cover" />)}</div>}
+          
         </div>
         <div className="py-4">
           <span className="text-sm font-black text-orange-600">ELGEWALIY / KIDSWEAR</span>
@@ -85,10 +89,10 @@ export default function ProductPage() {
           <p className="mt-1 text-zinc-500">{product.name_en}</p>
           <div className="mt-6 flex items-center gap-3"><b className="text-3xl">{price.toLocaleString("ar-EG")} ج.م</b>{product.compare_at_price && <del className="text-zinc-400">{Number(product.compare_at_price).toLocaleString("ar-EG")} ج.م</del>}</div>
           <p className="mt-6 leading-8 text-zinc-600">{product.description_ar || "قطعة مختارة من تشكيلة الجويلي للأطفال."}</p>
-          {options.sizes.length > 0 && <div className="mt-7"><b>المقاس</b><div className="mt-3 flex flex-wrap gap-2">{options.sizes.map(v => <button key={v} onClick={() => setSize(v)} className={size === v ? "rounded-xl bg-orange-500 px-4 py-3 font-black text-white" : "rounded-xl bg-zinc-100 px-4 py-3 font-bold"}>{v}</button>)}</div></div>}
-          {options.colors.length > 0 && <div className="mt-5"><b>اللون</b><div className="mt-3 flex flex-wrap gap-2">{options.colors.map(v => <button key={v} onClick={() => setColor(v)} className={color === v ? "rounded-xl bg-orange-500 px-4 py-3 font-black text-white" : "rounded-xl bg-zinc-100 px-4 py-3 font-bold"}>{v}</button>)}</div></div>}
-          <div className="mt-6 flex items-center gap-3"><button onClick={() => setQty(q => Math.max(1,q-1))} className="h-12 w-12 rounded-xl bg-zinc-100 text-xl font-black">−</button><b className="w-8 text-center">{qty}</b><button onClick={() => setQty(q => q+1)} className="h-12 w-12 rounded-xl bg-zinc-100 text-xl font-black">+</button><span className="text-sm text-zinc-500">{selectedVariant ? `المتاح: ${selectedVariant.stock}` : ""}</span></div>
-          <button onClick={addToCart} className="mt-6 w-full rounded-2xl bg-orange-500 px-6 py-4 text-lg font-black text-white">أضف للسلة</button>
+          {options.sizes.length > 0 && <div className="mt-7"><b>المقاس</b><div className="mt-3 flex flex-wrap gap-2">{options.sizes.map(v => { const available = variants.some(item => item.size === v && (color == null || item.color === color) && item.stock > 0); return <button key={v} disabled={!available} onClick={() => { setSize(v); setMessage(""); }} className={size === v ? "rounded-xl bg-orange-500 px-4 py-3 font-black text-white" : available ? "rounded-xl bg-zinc-100 px-4 py-3 font-bold" : "cursor-not-allowed rounded-xl bg-zinc-100 px-4 py-3 font-bold text-zinc-300 line-through"}>{v}</button>; })}</div></div>}
+          {options.colors.length > 0 && <div className="mt-5"><b>اللون</b><div className="mt-3 flex flex-wrap gap-2">{options.colors.map(v => { const available = variants.some(item => item.color === v && (size == null || item.size === size) && item.stock > 0); return <button key={v} disabled={!available} onClick={() => { setColor(v); setMessage(""); }} className={color === v ? "rounded-xl bg-orange-500 px-4 py-3 font-black text-white" : available ? "rounded-xl bg-zinc-100 px-4 py-3 font-bold" : "cursor-not-allowed rounded-xl bg-zinc-100 px-4 py-3 font-bold text-zinc-300 line-through"}>{v}</button>; })}</div></div>}
+          <div className="mt-6 flex items-center gap-3"><button onClick={() => setQty(q => Math.max(1,q-1))} className="h-12 w-12 rounded-xl bg-zinc-100 text-xl font-black">−</button><b className="w-8 text-center">{qty}</b><button disabled={hasVariants && qty >= availableStock} onClick={() => setQty(q => q+1)} className="h-12 w-12 rounded-xl bg-zinc-100 text-xl font-black disabled:opacity-40">+</button><span className="text-sm text-zinc-500">{selectedVariant ? `المتاح: ${selectedVariant.stock}` : hasVariants ? "اختار الخيارات" : ""}</span></div>
+          <button onClick={addToCart} disabled={hasVariants && (!selectedVariant || availableStock < 1)} className="mt-6 w-full rounded-2xl bg-orange-500 px-6 py-4 text-lg font-black text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">{hasVariants && !selectedVariant ? "اختار المقاس واللون" : availableStock === 0 && hasVariants ? "غير متوفر" : "أضف للسلة"}</button>
           {message && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{message}</p>}
         </div>
       </section>
