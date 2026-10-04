@@ -8,7 +8,7 @@ import { selectVariant, uniqueOptions, type VariantLike } from "@/lib/product-va
 import type { Product } from "@/lib/types";
 
 type Variant = VariantLike & { product_id: string };
-type Image = { id: string; image_url: string; alt_text: string | null; sort_order: number };
+type Image = { id: string; url: string; alt_ar: string | null; alt_en: string | null; sort_order: number };
 
 export default function ProductPage() {
   const params = useParams<{ slug: string }>();
@@ -28,7 +28,7 @@ export default function ProductPage() {
       setProduct(p as Product);
       const [{ data: vs }, { data: imgs }] = await Promise.all([
         supabase.from("product_variants").select("id,product_id,size,color,stock,price_override").eq("product_id", p.id).eq("is_active", true),
-        supabase.from("product_images").select("id,image_url,alt_text,sort_order").eq("product_id", p.id).order("sort_order"),
+        supabase.from("product_images").select("id,url,alt_ar,alt_en,sort_order").eq("product_id", p.id).order("sort_order"),
       ]);
       const list = (vs || []) as Variant[];
       setVariants(list);
@@ -75,9 +75,9 @@ export default function ProductPage() {
       <section className="mx-auto grid max-w-6xl gap-10 px-5 py-10 lg:grid-cols-2">
         <div>
           <div className="overflow-hidden rounded-[2rem] bg-[#fff1e5] aspect-square">
-            {images[0] ? <img src={images[0].image_url} alt={images[0].alt_text || product.name_ar} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-8xl font-black text-orange-200">ج</div>}
+            {images[0] ? <img src={images[0].url} alt={images[0].alt_ar || product.name_ar} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-8xl font-black text-orange-200">ج</div>}
           </div>
-          {images.length > 1 && <div className="mt-3 grid grid-cols-4 gap-3">{images.map(img => <img key={img.id} src={img.image_url} alt={img.alt_text || ""} className="aspect-square rounded-2xl object-cover" />)}</div>}
+          {images.length > 1 && <div className="mt-3 grid grid-cols-4 gap-3">{images.map(img => <img key={img.id} src={img.url} alt={img.alt_ar || ""} className="aspect-square rounded-2xl object-cover" />)}</div>}
         </div>
         <div className="py-4">
           <span className="text-sm font-black text-orange-600">ELGEWALIY / KIDSWEAR</span>
