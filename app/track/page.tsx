@@ -19,6 +19,7 @@ export default function Track() {
   const [token, setToken] = useState("");
   const [order, setOrder] = useState<any>(null);
   const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   async function load(orderNumber = id, trackingToken = token) {
     if (!orderNumber || !trackingToken) return;
@@ -53,6 +54,19 @@ export default function Track() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!id || !token) return;
+    let active = true;
+    const refresh = async () => {
+      if (!active) return;
+      setRefreshing(true);
+      await load(id, token);
+      if (active) setRefreshing(false);
+    };
+    const timer = window.setInterval(refresh, 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [id, token]);
+
   const status = order?.order?.status as string | undefined;
   const progress = ["new","accepted","preparing","ready","out_for_delivery","delivered"].indexOf(status || "");
 
@@ -65,7 +79,7 @@ export default function Track() {
           <p className="mt-2 text-zinc-500">استخدم رقم الطلب ورمز التتبع الخاص بطلبك.</p>
           <input value={id} onChange={e => setId(e.target.value)} placeholder="معرّف الطلب" className="mt-6 w-full rounded-2xl border p-4" />
           <input value={token} onChange={e => setToken(e.target.value)} placeholder="رمز التتبع" className="mt-3 w-full rounded-2xl border p-4" />
-          <button onClick={() => load()} className="mt-3 w-full rounded-2xl bg-orange-500 py-4 font-black text-white">تتبع الطلب</button>
+          <button onClick={() => load()} disabled={refreshing} className="mt-3 w-full rounded-2xl bg-orange-500 py-4 font-black text-white disabled:opacity-60">{refreshing ? "جارٍ التحديث..." : "تتبع الطلب"}</button>
 
           {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
