@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addCartItem, cartCount, cartTotal, removeCartItem, updateCartQuantity } from "../lib/cart";
+import { addCartItem, cartCount, cartTotal, removeCartItem, updateCartQuantity } from "../lib/cart.ts";
 
 const item = {
   key: "p1-v1",
