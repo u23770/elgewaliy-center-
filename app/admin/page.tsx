@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+type Product = { id: string; name_ar: string; name_en: string; price: number; compare_at_price: number | null; is_active: boolean; category_id: string | null; };
+
 type Order = {
   id: string;
   order_number: string;
@@ -34,6 +36,16 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name_ar: string; name_en: string }[]>([]);
+
+  const loadProducts = useCallback(async () => {
+    const [{ data, error: e }, { data: cats }] = await Promise.all([
+      supabase.from("products").select("id,name_ar,name_en,price,compare_at_price,is_active,category_id").order("created_at", { ascending: false }),
+      supabase.from("categories").select("id,name_ar,name_en").order("sort_order")
+    ]);
+    if (e) setError("تعذر تحميل المنتجات."); else { setProducts((data || []) as Product[]); setCategories(cats || []); }
+  }, []);
 
   const loadOrders = useCallback(async () => {
     const { data, error: queryError } = await supabase
@@ -74,7 +86,7 @@ export default function Admin() {
         return;
       }
 
-      await loadOrders();
+      await Promise.all([loadOrders(), loadProducts()]);
       setLoading(false);
 
       channel = supabase
@@ -87,7 +99,23 @@ export default function Admin() {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, [loadOrders]);
+  }, [loadOrders, loadProducts]);
+
+  const addProduct = async () => {
+    const nameAr = window.prompt("اسم المنتج بالعربي؟");
+    if (!nameAr) return;
+    const nameEn = window.prompt("اسم المنتج بالإنجليزية؟");
+    const price = window.prompt("السعر؟");
+    if (!nameEn || !price) return;
+    const slug = nameEn.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const { error: e } = await supabase.rpc("upsert_store_product", { p_id: null, p_category_id: categories[0]?.id || null, p_name_ar: nameAr, p_name_en: nameEn, p_slug: slug, p_description_ar: null, p_description_en: null, p_price: Number(price), p_compare_at_price: null, p_is_active: true });
+    if (e) setError(e.message); else await loadProducts();
+  };
+
+  const toggleProduct = async (product: Product) => {
+    const { error: e } = await supabase.rpc("upsert_store_product", { p_id: product.id, p_category_id: product.category_id, p_name_ar: product.name_ar, p_name_en: product.name_en, p_slug: product.name_en.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-"), p_description_ar: null, p_description_en: null, p_price: product.price, p_compare_at_price: product.compare_at_price, p_is_active: !product.is_active });
+    if (e) setError(e.message); else await loadProducts();
+  };
 
   const updateStatus = async (orderId: string, status: string) => {
     setUpdating(orderId);
@@ -216,10 +244,8 @@ export default function Admin() {
             </div>
           </section>
         ) : (
-          <section className="card p-6">
-            <h1 className="text-xl font-black">إدارة المنتجات</h1>
-            <p className="mt-2 text-zinc-500">إدارة المنتجات والمقاسات والألوان والمخزون ستكون المرحلة التالية من لوحة التشغيل.</p>
-            <a href="/" className="mt-5 inline-flex rounded-2xl bg-orange-500 px-6 py-3 font-black text-white">عرض المتجر</a>
+          <section className="space-y-5">
+            <div className="card p-6"><div className="flex items-center justify-between gap-3"><h1 className="text-xl font-black">إدارة المنتجات</h1><button onClick={() => void addProduct()} className="rounded-2xl bg-orange-500 px-5 py-3 font-black text-white">+ إضافة منتج</button></div><p className="mt-2 text-zinc-500">المنتجات الحالية: {products.length}</p></div><div className="card overflow-hidden">{products.map(p => <div key={p.id} className="flex items-center justify-between gap-3 border-b p-5 last:border-0"><div><b>{p.name_ar}</b><div className="text-sm text-zinc-500">{p.name_en} • {Number(p.price).toLocaleString("ar-EG")} ج.م</div></div><button onClick={() => void toggleProduct(p)} className="rounded-xl bg-orange-50 px-4 py-2 font-bold text-orange-700">{p.is_active ? "نشط" : "مخفي"}</button></div>)}</div>
           </section>
         )}
       </div>
