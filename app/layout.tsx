@@ -1,11 +1,1 @@
-import "./globals.css";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title:"الجويلي | Elgewaliy",
-  description:"ملابس أطفال وأولاد وبنات من الجويلي"
-};
-
-export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="ar" dir="rtl"><body>{children}</body></html>;
-}
+import"./globals.css";export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="ar" dir="rtl" suppressHydrationWarning><head><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#fffaf5"/><meta name="description" id="metaDesc" content="Elgewaliy Fashion Center"/><link rel="icon" href="/customer/images/brand.svg"/><link rel="manifest" href="/customer/manifest.webmanifest"/><link rel="stylesheet" href="/customer/css/style.css"/><link rel="stylesheet" href="/customer/css/premium-navbar-hero.css"/><link rel="stylesheet" href="/customer/css/design-polish.css"/><link rel="stylesheet" href="/customer/css/preloader-logo.css"/></head><body>{children}</body></html>}
