@@ -14,19 +14,17 @@ const labels: Record<string,string> = {
   cancelled: "ملغي",
 };
 
-const orderParam = () => new URLSearchParams(window.location.search);
-
 export default function Track() {
   const [id, setId] = useState("");
   const [token, setToken] = useState("");
   const [order, setOrder] = useState<any>(null);
   const [error, setError] = useState("");
 
-  async function load(orderId = id, trackingToken = token) {
-    if (!orderId || !trackingToken) return;
+  async function load(orderNumber = id, trackingToken = token) {
+    if (!orderNumber || !trackingToken) return;
     setError("");
-    const { data, error: rpcError } = await supabase.rpc("get_guest_store_order", {
-      p_order_id: orderId,
+    const { data, error: rpcError } = await supabase.rpc("get_guest_store_order_by_number", {
+      p_order_number: orderNumber,
       p_tracking_token: trackingToken,
     });
     if (rpcError || !data?.order) {
@@ -37,17 +35,13 @@ export default function Track() {
   }
 
   useEffect(() => {
-    const params = orderParam();
+    const params = new URLSearchParams(window.location.search);
     const orderNumber = params.get("order");
     const queryToken = params.get("token");
     if (orderNumber && queryToken) {
+      setId(orderNumber);
       setToken(queryToken);
-      supabase.from("orders").select("id").eq("order_number", orderNumber).maybeSingle().then(({data}) => {
-        if (data?.id) {
-          setId(data.id);
-          load(data.id, queryToken);
-        }
-      });
+      load(orderNumber, queryToken);
     } else {
       try {
         const saved = JSON.parse(localStorage.getItem("elgewaliy-active-order") || "null");
