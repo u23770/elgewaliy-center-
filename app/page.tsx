@@ -19,6 +19,8 @@ type Variant = VariantLike & {
 
 type ProductWithVariants = Product & { product_variants?: Variant[] };
 
+type ProductImage = { id: string; product_id: string; url: string; alt_ar: string | null; alt_en: string | null; sort_order: number };
+
 type Choice = {
   size: string | null;
   color: string | null;
@@ -127,6 +129,7 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>(fallbackProducts);
   const [categories, setCategories] = useState<Category[]>([]);
   const [variants, setVariants] = useState<Record<string, Variant[]>>({});
+  const [productImages, setProductImages] = useState<Record<string, ProductImage[]>>({});
   const [choices, setChoices] = useState<Record<string, Choice>>({});
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
@@ -156,7 +159,7 @@ export default function Home() {
 
   useEffect(() => {
     (async () => {
-      const [productsResult, categoriesResult, variantsResult] = await Promise.all([
+      const [productsResult, categoriesResult, variantsResult, imagesResult] = await Promise.all([
         supabase
           .from("products")
           .select("*")
@@ -171,10 +174,23 @@ export default function Home() {
           .from("product_variants")
           .select("id,product_id,size,color,stock,price_override")
           .eq("is_active", true),
+        supabase
+          .from("product_images")
+          .select("id,product_id,url,alt_ar,alt_en,sort_order")
+          .order("sort_order"),
       ]);
 
       if (productsResult.data?.length) setProducts(productsResult.data as Product[]);
       if (categoriesResult.data?.length) setCategories(categoriesResult.data as Category[]);
+      if (imagesResult.data) {
+        const groupedImages: Record<string, ProductImage[]> = {};
+        (imagesResult.data as ProductImage[]).forEach((image) => {
+          if (!groupedImages[image.product_id]) groupedImages[image.product_id] = [];
+          groupedImages[image.product_id].push(image);
+        });
+        setProductImages(groupedImages);
+      }
+
       if (variantsResult.data) {
         const grouped: Record<string, Variant[]> = {};
         (variantsResult.data as Variant[]).forEach((item) => {
@@ -439,7 +455,10 @@ export default function Home() {
                   </div>
 
                   <div className="product-stage">
-                    <div className="hanger" />
+                    {productImages[product.id]?.[0] ? (
+                      <img className="product-real-image" src={productImages[product.id][0].url} alt={productImages[product.id][0].alt_ar || product.name_ar} loading="lazy" />
+                    ) : null}
+                    <div className={productImages[product.id]?.[0] ? "hanger image-hanger" : "hanger"} />
                     <div className="product-shape">
                       <span className="shirt-neck" />
                       <span className="shirt-seam" />
