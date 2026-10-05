@@ -52,9 +52,9 @@
     if (!state.workbook || !state.workbook.Sheets[name]) return;
     const sheet = state.workbook.Sheets[name];
     state.sheetName = name;
-    state.rows = StoreAdminImport ? XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false }) : [];
+    state.rows = window.StoreAdminImport ? XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false }) : [];
     state.headers = state.rows.length ? Object.keys(state.rows[0]) : [];
-    state.mapping = StoreAdminImport ? StoreAdminImport.inferColumnMapping(state.headers) : {};
+    state.mapping = window.StoreAdminImport ? window.StoreAdminImport.inferColumnMapping(state.headers) : {};
     state.plan = null;
     renderWizard();
   }
@@ -218,7 +218,7 @@
       return;
     }
 
-    state.plan = StoreAdminImport.buildImportPlan(state.rows, state.mapping, {
+    state.plan = window.StoreAdminImport.buildImportPlan(state.rows, state.mapping, {
       categories: state.categories,
       existingProducts: state.products,
       existingSizes: state.sizes,
@@ -295,6 +295,12 @@
   }
 
   document.addEventListener('click', function (event) {
+    const launch = event.target.closest('[data-action="import-products"]');
+    if (launch) {
+      event.preventDefault();
+      openProductImport().catch(function (error) { C().toast(error.message || tx('Could not open the importer.', 'تعذر فتح مستورد المنتجات.'), 'error'); });
+      return;
+    }
     const node = event.target.closest('[data-import-action]');
     if (!node) return;
     const action = node.dataset.importAction;
