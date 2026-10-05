@@ -72,95 +72,6 @@
     else result.sort(function (a, b) { return Number(b.featured) - Number(a.featured); });
     return result;
   }
-  const demo = {
-    mode: 'demo',
-    listProducts: async function (filters) { const data = currentData(); return filterProducts(data.products.filter(function (item) { return filters && filters.includeInactive || item.active; }).map(function (item) { const category = findCategory(item.categoryId, data); return Object.assign({}, item, { category: category ? category.name : { en: '', ar: '' }, categorySlug: category ? category.slug : '' }); }), filters || {}, data); },
-    getProduct: async function (key) { const data = currentData(); const item = data.products.find(function (product) { return product.id === key || product.slug === key; }); if (!item || !item.active) return null; const category = findCategory(item.categoryId, data); return Object.assign({}, item, { category: category ? category.name : { en: '', ar: '' }, categorySlug: category ? category.slug : '' }); },
-    listCategories: async function (includeInactive) { return currentData().categories.filter(function (item) { return includeInactive || item.active; }).sort(function (a, b) { return a.order - b.order; }); },
-    saveCategory: async function (input) { let saved; saveData(function (data) { const id = input.id || Store.id(); const slug = slugify(input.slug || input.name.en); saved = Object.assign({}, input, { id: id, slug: slug, active: input.active !== false, order: Number(input.order || 0) }); const index = data.categories.findIndex(function (item) { return item.id === id; }); if (index >= 0) data.categories[index] = saved; else data.categories.push(saved); return data; }); return saved; },
-    deleteCategory: async function (id) { saveData(function (data) { data.categories = data.categories.filter(function (item) { return item.id !== id; }); data.products.forEach(function (product) { if (product.categoryId === id) product.categoryId = ''; }); return data; }); },
-    listSizes: async function (includeInactive) { return currentData().sizes.filter(function (item) { return includeInactive || item.active; }).sort(function (a, b) { return a.order - b.order; }); },
-    saveSize: async function (input) { let saved; saveData(function (data) { const id = input.id || Store.id(); saved = Object.assign({}, input, { id: id, label: String(input.label || '').trim(), active: input.active !== false, order: Number(input.order || 0) }); const index = data.sizes.findIndex(function (item) { return item.id === id; }); if (index >= 0) data.sizes[index] = saved; else data.sizes.push(saved); return data; }); return saved; },
-    deleteSize: async function (id) { saveData(function (data) { data.sizes = data.sizes.filter(function (item) { return item.id !== id; }); return data; }); },
-    listColors: async function (includeInactive) { return currentData().colors.filter(function (item) { return includeInactive || item.active; }); },
-    saveColor: async function (input) { let saved; saveData(function (data) { const id = input.id || Store.id(); saved = Object.assign({}, input, { id: id, key: input.key || slugify(input.name.en), active: input.active !== false }); const index = data.colors.findIndex(function (item) { return item.id === id; }); if (index >= 0) data.colors[index] = saved; else data.colors.push(saved); return data; }); return saved; },
-    deleteColor: async function (id) { saveData(function (data) { data.colors = data.colors.filter(function (item) { return item.id !== id; }); return data; }); },
-    saveProduct: async function (input) { let saved; const data = currentData(); const price = Number(input.price); const salePrice = input.salePrice == null || input.salePrice === '' ? null : Number(input.salePrice); if (!input.name.en || !input.name.ar || !(price > 0) || salePrice != null && (salePrice < 0 || salePrice >= price)) throw new Error('Enter both product names and valid prices.'); if (input.variants && input.variants.length && input.variants.every(function (variant) { return !variant.size && !variant.color; })) throw new Error('Every variant needs a size or a colour.'); saveData(function (next) { const id = input.id || Store.id(); const slug = slugify(input.slug || input.name.en); saved = Object.assign({}, input, { id: id, slug: slug, price: price, salePrice: salePrice, stock: Math.max(0, Number(input.stock || 0)), images: (input.images || []).filter(Boolean), variants: input.variants || [], active: input.active !== false, updatedAt: new Date().toISOString(), createdAt: input.createdAt || new Date().toISOString() }); const index = next.products.findIndex(function (item) { return item.id === id; }); if (index >= 0) next.products[index] = saved; else next.products.unshift(saved); return next; }); return saved; },
-    deleteProduct: async function (id) { saveData(function (data) { data.products = data.products.filter(function (item) { return item.id !== id; }); return data; }); },
-    getSettings: async function () { return currentData().settings; },
-    saveSettings: async function (input) { saveData(function (data) { data.settings = Object.assign({}, data.settings, input); return data; }); return currentData().settings; },
-    listPromotions: async function () { return currentData().promotions.slice().sort(function (a, b) { return String(a.code).localeCompare(String(b.code)); }); },
-    savePromotion: async function (input) { let saved; const code = String(input.code || '').trim().toUpperCase(); if (Number(input.value) <= 0 || input.type === 'percentage' && Number(input.value) > 100) throw new Error('Enter a valid discount.'); if (input.scope !== 'global' && !(input.targetIds || []).length) throw new Error('Select at least one promotion target.'); if (input.endsAt && input.startsAt && new Date(input.endsAt).getTime() <= new Date(input.startsAt).getTime()) throw new Error('Promotion end time must be after the start time.'); if (window.StorePromotionUtils) { saved = window.StorePromotionUtils.normalizePromotion(Object.assign({}, input, { code: code })); } else { saved = Object.assign({}, input, { id: input.id || Store.id(), code: code, value: Number(input.value), active: input.active !== false }); } saveData(function (data) { const id = input.id || saved.id || Store.id(); saved = Object.assign({}, saved, { id: id, code: code, value: Number(input.value), active: input.active !== false }); const index = data.promotions.findIndex(function (item) { return item.id === id; }); if (index >= 0) data.promotions[index] = saved; else data.promotions.push(saved); return data; }); return saved; },
-    deletePromotion: async function (id) { saveData(function (data) { data.promotions = data.promotions.filter(function (item) { return item.id !== id; }); return data; }); },
-    validatePromotion: async function (code, subtotal, lines) { const promotions = currentData().promotions || []; if (window.StorePromotionUtils) { const normalized = promotions.map(window.StorePromotionUtils.normalizePromotion); const contextLines = (lines || []).map(function (line) { return { productId: line.product && line.product.id || line.productId, categoryId: line.product && line.product.categoryId || line.categoryId, price: line.price, quantity: line.quantity, lineTotal: line.price * line.quantity }; }); const productIds = contextLines.map(function (line) { return String(line.productId || ''); }).filter(Boolean); const categoryIds = contextLines.map(function (line) { return String(line.categoryId || ''); }).filter(Boolean); const promo = window.StorePromotionUtils.chooseBestPromotion(normalized, { code: code, requireCode: Boolean(String(code || '').trim()), subtotal: Number(subtotal || 0), productIds: productIds, categoryIds: categoryIds, now: new Date() }); if (!promo) return null; const eligible = window.StorePromotionUtils.eligibleSubtotal(promo, contextLines); return { code: promo.code, discount: window.StorePromotionUtils.calculatePromotionDiscount(promo, eligible), title: promo.title, id: promo.id }; } const current = promotions.find(function (item) { return item.code.toUpperCase() === String(code || '').trim().toUpperCase() && item.active; }); if (!current) return null; const now = Date.now(); if (current.startsAt && new Date(current.startsAt).getTime() > now || current.endsAt && new Date(current.endsAt).getTime() < now) return null; const discount = current.type === 'percentage' ? Math.round(Number(subtotal) * Number(current.value) / 100) : Math.min(Number(subtotal), Number(current.value)); return { code: current.code, discount: discount, title: current.title }; },
-    updateInventory: async function (productId, variantId, quantity) { let success = false; saveData(function (data) { const product = data.products.find(function (item) { return item.id === productId; }); if (!product) return data; if (variantId) { const variant = product.variants.find(function (item) { return item.id === variantId; }); if (variant) { variant.stock = Math.max(0, Number(quantity || 0)); success = true; } } else { product.stock = Math.max(0, Number(quantity || 0)); success = true; } return data; }); if (!success) throw new Error('The inventory row could not be found.'); },
-    listOrders: async function () { return currentData().orders.slice().sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); }); },
-    getOrder: async function (key) { return currentData().orders.find(function (order) { return order.id === key || order.orderNumber === key; }) || null; },
-    listCustomerOrders: async function (userId) { return currentData().orders.filter(function (order) { return order.userId === userId; }).sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); }); },
-    trackOrder: async function (orderNumber, phone) { const digits = normalizePhone(phone); return currentData().orders.find(function (order) { return order.orderNumber.toLowerCase() === String(orderNumber || '').trim().toLowerCase() && normalizePhone(order.customer.phone) === digits; }) || null; },
-    createOrder: async function (input) {
-      if (!input.items || !input.items.length) throw new Error('Your bag is empty.');
-      let created;
-      saveData(function (data) {
-        const lines = [];
-        let subtotal = 0;
-        input.items.forEach(function (item) {
-          const product = data.products.find(function (candidate) { return candidate.id === item.productId && candidate.active; });
-          if (!product) throw new Error('A product in your bag is no longer available.');
-          const variant = item.variantId ? (product.variants || []).find(function (candidate) { return candidate.id === item.variantId && candidate.active !== false; }) : null;
-          if (product.variants && product.variants.length && !variant) throw new Error('Choose an available size or colour.');
-          if (item.variantId && !variant) throw new Error('That product option is no longer available.');
-          const stock = availableStock(product, variant);
-          const quantity = Math.floor(Number(item.quantity));
-          if (!(quantity > 0) || stock < quantity) throw new Error('Only ' + stock + ' of a selected piece are available.');
-          const price = effectivePrice(product, variant);
-          if (variant) variant.stock -= quantity; else product.stock -= quantity;
-          const color = variant && variant.color ? Store.clone(variant.color) : null;
-          lines.push({ id: Store.id(), productId: product.id, variantId: variant ? variant.id : '', name: Store.clone(product.name), image: product.images[0] || '', sku: variant && variant.sku || product.sku, size: variant && variant.size || '', color: color, quantity: quantity, price: price, lineTotal: price * quantity });
-          subtotal += price * quantity;
-        });
-        let discount = 0; let promotionCode = ''; let appliedPromotion = null;
-        if (window.StorePromotionUtils) {
-          const normalized = data.promotions.map(window.StorePromotionUtils.normalizePromotion);
-          const contextLines = lines.map(function (line) { const product = data.products.find(function (item) { return item.id === line.productId; }); return { productId: line.productId, categoryId: product && product.categoryId || '', price: line.price, quantity: line.quantity, lineTotal: line.lineTotal }; });
-          const requestedCode = String(input.promotionCode || '').trim().toUpperCase();
-          const promo = window.StorePromotionUtils.chooseBestPromotion(normalized, { code: requestedCode, requireCode: Boolean(requestedCode), subtotal: subtotal, productIds: contextLines.map(function (line) { return String(line.productId); }), categoryIds: contextLines.map(function (line) { return String(line.categoryId); }), now: new Date() });
-          if (requestedCode && !promo) throw new Error('The promotion code is no longer available.');
-          if (promo) {
-            const eligible = window.StorePromotionUtils.eligibleSubtotal(promo, contextLines);
-            discount = window.StorePromotionUtils.calculatePromotionDiscount(promo, eligible);
-            promotionCode = promo.code;
-            appliedPromotion = promo;
-          }
-        } else if (input.promotionCode) {
-          const promo = data.promotions.find(function (item) { return item.code.toUpperCase() === String(input.promotionCode).toUpperCase() && item.active; });
-          if (!promo || promo.startsAt && new Date(promo.startsAt).getTime() > Date.now() || promo.endsAt && new Date(promo.endsAt).getTime() < Date.now()) throw new Error('The promotion code is no longer available.');
-          discount = promo.type === 'percentage' ? Math.round(subtotal * promo.value / 100) : Math.min(subtotal, promo.value);
-          promotionCode = promo.code;
-          appliedPromotion = promo;
-        }
-        const settings = data.settings;
-        const threshold = Number(settings.freeDeliveryThreshold || 0);
-        const deliveryFee = threshold > 0 && subtotal >= threshold ? 0 : Number(settings.deliveryFee || 0);
-        const now = new Date().toISOString();
-        const number = 'EG-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-        const session = Store.storage.session();
-        created = { id: Store.id(), orderNumber: number, userId: session && session.user ? session.user.id : '', customer: { name: input.customer.name.trim(), email: input.customer.email.trim(), phone: input.customer.phone.trim() }, address: { governorate: input.address.governorate, area: input.address.area.trim(), address: input.address.address.trim(), notes: input.address.notes || '' }, paymentMethod: input.paymentMethod, status: 'pending', subtotal: subtotal, discount: discount, promotionCode: promotionCode, deliveryFee: deliveryFee, total: Math.max(0, subtotal - discount + deliveryFee), items: lines, createdAt: now, events: [{ status: 'pending', at: now, note: '' }] };
-        if (appliedPromotion) {
-          const savedPromotion = data.promotions.find(function (item) { return item.id === appliedPromotion.id || item.code === appliedPromotion.code; });
-          if (savedPromotion) savedPromotion.usedCount = Number(savedPromotion.usedCount || 0) + 1;
-        }
-        data.orders.push(created);
-        const existing = data.customers.find(function (customer) { return customer.id === created.userId; });
-        if (existing && input.customer.phone) existing.phone = input.customer.phone.trim();
-        return data;
-      });
-      return created;
-    },
-    updateOrderStatus: async function (id, status) { if (allowedStatuses.indexOf(status) < 0) throw new Error('Unknown order status.'); let found = false; saveData(function (data) { const order = data.orders.find(function (item) { return item.id === id || item.orderNumber === id; }); if (order) { order.status = status; order.events.push({ status: status, at: new Date().toISOString(), note: '' }); found = true; } return data; }); if (!found) throw new Error('Order not found.'); },
-    listCustomers: async function () { return currentData().customers.slice().sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); }); },
-    updateCustomer: async function (userId, patch) { saveData(function (data) { const person = data.customers.find(function (item) { return item.id === userId; }); if (person) Object.assign(person, patch); return data; }); }
-  };
   const remote = {
     mode: 'supabase',
     listProducts: remoteProducts,
@@ -181,7 +92,14 @@
     listPromotions: async function (includeInactive) { if (includeInactive) { const snapshot = await adminSnapshot(); return (snapshot.promotions || []).map(mapPromotion); } const rows = await Store.supabase.rest('promotions', { select: '*', order: 'created_at.desc' }); return (rows || []).map(mapPromotion); },
     savePromotion: async function (input) { const normalized = window.StorePromotionUtils ? window.StorePromotionUtils.normalizePromotion(input) : input; const id = await rpcAdmin('admin_save_promotion', { p_id: normalized.id && /^[0-9a-f-]{36}$/i.test(normalized.id) ? normalized.id : null, p_code: normalized.code || '', p_title_en: normalized.title.en, p_title_ar: normalized.title.ar, p_discount_type: normalized.type, p_discount_value: Number(normalized.value), p_scope: normalized.scope, p_target_ids: normalized.targetIds, p_min_order: Number(normalized.minOrder || 0), p_max_discount: normalized.maxDiscount, p_usage_limit: normalized.usageLimit, p_priority: Number(normalized.priority || 0), p_active: normalized.active !== false, p_starts_at: normalized.startsAt || null, p_ends_at: normalized.endsAt || null }); return Object.assign({}, normalized, { id: id }); },
     deletePromotion: async function (id) { await rpcAdmin('admin_archive_promotion', { p_id: id }); },
-    validatePromotion: async function (code, subtotal, lines) { const promotions = await this.listPromotions(); if (!window.StorePromotionUtils) return null; const contextLines = (lines || []).map(function (line) { return { productId: line.product && line.product.id || line.productId, categoryId: line.product && line.product.categoryId || line.categoryId, price: line.price, quantity: line.quantity, lineTotal: line.price * line.quantity }; }); const promo = window.StorePromotionUtils.chooseBestPromotion(promotions, { code: code, requireCode: true, subtotal: Number(subtotal || 0), productIds: contextLines.map(function (line) { return String(line.productId || ''); }), categoryIds: contextLines.map(function (line) { return String(line.categoryId || ''); }), now: new Date() }); if (!promo) return null; return { id: promo.id, code: promo.code, title: promo.title, discount: window.StorePromotionUtils.calculatePromotionDiscount(promo, window.StorePromotionUtils.eligibleSubtotal(promo, contextLines)) }; },
+    validatePromotion: async function (code, subtotal, lines) {
+      const items = (lines || []).map(function (line) {
+        return { product_id: line.product && line.product.id || line.productId, variant_id: line.variantId || line.variant && line.variant.id || null, quantity: Number(line.quantity || 0) };
+      }).filter(function (item) { return item.product_id && item.quantity > 0; });
+      const result = await Store.supabase.rpc('validate_promotion', { p_code: String(code || '').trim().toUpperCase(), p_items: items });
+      if (!result) return null;
+      return { id: result.id, code: result.code || '', title: result.title, discount: Number(result.discount || 0) };
+    },
     getSiteConfig: async function (includePrivate) {
       if (includePrivate) {
         const snapshot = await adminSnapshot();
@@ -276,14 +194,21 @@
     createOrder: async function (input) { const payload = { customer_name: input.customer.name, customer_email: input.customer.email || null, customer_phone: input.customer.phone, governorate: input.address.governorate, area: input.address.area, delivery_address: input.address.address, maps_link: input.address.mapsLink || '', zone_id: input.address.zoneId || null, subzone_id: input.address.subzoneId || null, notes: input.address.notes || '', payment_method: input.paymentMethod, promotion_code: input.promotionCode || '', items: input.items.map(function (item) { return { product_id: item.productId, variant_id: item.variantId || null, quantity: Number(item.quantity) }; }) }; const row = await Store.supabase.rpc('place_order', { p_order: payload }); return mapOrder(row); },
     updateOrderStatus: async function (id, status) { if (allowedStatuses.indexOf(status) < 0) throw new Error('Unknown order status.'); const actual = ({ pending:'new', confirmed:'accepted', preparing:'preparing', out_for_delivery:'out_for_delivery', delivered:'delivered', cancelled:'cancelled' })[status]; return rpcAdmin('admin_update_order_status', { p_order_id: id, p_status: actual, p_note: '' }); },
     listCustomers: async function () { const snapshot = await adminSnapshot(); return (snapshot.customers || []).map(function (row) { return { id: row.id, fullName: row.name, email: row.email || '', phone: row.phone, createdAt: row.created_at, role: 'customer', authUserId: row.auth_user_id || '' }; }); },
-    updateCustomer: async function (userId, patch) { if (!Store.storage.session() || !Store.storage.session().access_token) throw new Error('Customer authentication required.'); await Store.supabase.rpc('customer_update_profile', { p_name: patch.fullName, p_phone: patch.phone }); }
+    updateCustomer: async function (userId, patch) {
+      if (!userId) throw new Error('Customer id is required.');
+      const current = (await this.listCustomers()).find(function (item) { return item.id === userId; });
+      if (!current) throw new Error('Customer not found.');
+      return rpcAdmin('admin_update_customer', { p_customer_id: userId, p_name: patch.fullName, p_phone: patch.phone, p_email: patch.email || current.email });
+    }
   };
-  const useRemote = Store.config.dataMode === 'supabase' && Store.supabase.ready;
-  const useDemo = Store.config.allowDemoFallback === true;
-  const disabled = { mode: 'disabled', listProducts: async function(){ throw new Error('Live store backend is not configured.'); } };
-  Store.repo = useRemote ? remote : (useDemo ? demo : disabled);
-  Store.repo.mode = useRemote ? 'supabase' : (useDemo ? 'demo' : 'disabled');
+  const useRemote = Store.config.dataMode === 'supabase';
+  const unavailable = new Proxy({ mode: 'unavailable' }, {
+    get: function (target, key) { if (key in target) return target[key]; return async function () { throw new Error('Store backend is unavailable.'); }; }
+  });
+  const repository = useRemote && Store.supabase.ready ? remote : unavailable;
+  Store.repo = repository;
+  Store.repo.mode = useRemote && Store.supabase.ready ? 'supabase' : 'unavailable';
   Store.repo.helpers = { slugify: slugify, activeVariants: activeVariants, effectivePrice: effectivePrice, availableStock: availableStock, normalizePhone: normalizePhone, statuses: allowedStatuses };
-  Store.useSupabase = useRemote;
-  Store.isProduction = useRemote && Store.config.allowDemoFallback !== true;
+  Store.useSupabase = useRemote && Store.supabase.ready;
+  Store.isProduction = Store.useSupabase;
 })(window.Store);
