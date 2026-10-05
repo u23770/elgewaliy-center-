@@ -69,11 +69,26 @@
   function revokeAccess(target) {
     const store = storage(target);
     if (!store) return;
+    let token = '';
     try {
+      token = store.getItem(TOKEN_KEY) || '';
       store.removeItem(ACCESS_KEY);
       store.removeItem(TOKEN_KEY);
       store.removeItem(EXPIRES_KEY);
     } catch (_) {}
+    if (token && root && root.fetch) {
+      const config = root.CEG_CONFIG || {};
+      root.fetch(String(config.supabaseUrl || '').replace(/\\/$/, '') + '/rest/v1/rpc/admin_revoke_session', {
+        method: 'POST',
+        headers: {
+          apikey: config.supabaseAnonKey || '',
+          Authorization: 'Bearer ' + (config.supabaseAnonKey || ''),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ p_session_token: token }),
+        keepalive: true
+      }).catch(function () {});
+    }
   }
 
   function adminUser() {
