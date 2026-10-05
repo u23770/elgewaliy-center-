@@ -309,6 +309,11 @@ declare
   v_payment text;
   v_snapshot jsonb;
   v_image text;
+  v_requested_promotion_code text;
+  v_promotion_id uuid;
+  v_promotion_code text;
+  v_promotion_discount numeric(12,2) := 0;
+  v_eligible_subtotal numeric(12,2) := 0;
 begin
   v_name := trim(coalesce(p_order->>'customer_name',''));
   v_email := nullif(trim(coalesce(p_order->>'customer_email','')),'');
@@ -318,6 +323,7 @@ begin
   v_address := trim(coalesce(p_order->>'delivery_address',''));
   v_notes := trim(coalesce(p_order->>'notes',''));
   v_payment := coalesce(p_order->>'payment_method','');
+  v_requested_promotion_code := nullif(upper(trim(coalesce(p_order->>'promotion_code',''))),'');
   if v_name = '' or v_phone = '' or v_governorate = '' or v_area = '' or v_address = '' then raise exception 'Customer and delivery details are required'; end if;
   if v_payment not in ('cash_on_delivery','card_on_delivery') then raise exception 'Unsupported payment method'; end if;
   if v_user_id is not null and v_email is null then select email into v_email from auth.users where id = v_user_id; end if;
@@ -347,7 +353,7 @@ begin
       if not found then raise exception 'The selected variant is unavailable'; end if;
       v_variant_found := true;
       v_unit_price := coalesce(v_variant.price_override, v_product.sale_price, v_product.price);
-      v_image := coalesce(v_variant.image_url, (select pi.image_url from public.product_images pi where pi.product_id=v_product.id and (pi.color_key is null or pi.color_key=v_variant.color_key) order by (pi.color_key=v_variant.color_key) desc nulls last, pi.sort_order limit 1));
+      v_image := coalesce(v_variant.image_url, (select pi.image_url from public.product_images pi where pi.product_id=v_product.id order by pi.sort_order limit 1));
       v_snapshot := jsonb_build_object(
         'name_en',v_product.name_en,'name_ar',v_product.name_ar,'sku',coalesce(v_variant.sku,v_product.sku),
         'image_url',v_image,'size_label',v_variant.size_label,'color_key',v_variant.color_key,
@@ -371,13 +377,66 @@ begin
     ));
   end loop;
 
+  /*
+   * Promotion selection is authoritative and runs in the same transaction as the stock decrement.
+   * A provided code selects a coupon promotion; an empty code may select an automatic promotion.
+   */
+  select p.id,
+         p.code,
+         es.eligible_subtotal,
+         case
+           when p.discount_type='percentage'
+             then least(es.eligible_subtotal, es.eligible_subtotal * p.discount_value / 100, coalesce(p.max_discount, es.eligible_subtotal))
+           else least(es.eligible_subtotal, p.discount_value, coalesce(p.max_discount, es.eligible_subtotal))
+         end as computed_discount
+    into v_promotion_id, v_promotion_code, v_eligible_subtotal, v_promotion_discount
+  from public.promotions p
+  cross join lateral (
+    select coalesce(sum((item->>'line_total')::numeric),0)::numeric(12,2) as eligible_subtotal
+    from jsonb_array_elements(v_items) item
+    left join public.products pr on pr.id=(item->>'product_id')::uuid
+    where p.scope='global'
+       or p.scope='product' and pr.id = any(p.target_ids)
+       or p.scope='category' and pr.category_id = any(p.target_ids)
+  ) es
+  where p.is_active=true
+    and (p.starts_at is null or p.starts_at <= now())
+    and (p.ends_at is null or p.ends_at > now())
+    and p.min_order_amount <= v_subtotal
+    and (p.usage_limit is null or p.used_count < p.usage_limit)
+    and es.eligible_subtotal > 0
+    and case
+      when v_requested_promotion_code is not null then upper(p.code)=v_requested_promotion_code
+      else p.code is null
+    end
+  order by p.priority desc,
+           computed_discount desc,
+           p.created_at asc,
+           p.id
+  limit 1
+  for update of p;
+
+  if v_requested_promotion_code is not null and v_promotion_id is null then
+    raise exception 'The promotion code is no longer available';
+  end if;
+
+  if v_promotion_id is not null then
+    update public.promotions
+       set used_count = used_count + 1,
+           updated_at = now()
+     where id=v_promotion_id;
+  else
+    v_promotion_code := null;
+    v_promotion_discount := 0;
+  end if;
+
   select value into v_settings from public.store_settings where key='general';
   v_threshold := coalesce(nullif(v_settings->>'freeDeliveryThreshold','')::numeric, 2000);
   if v_threshold > 0 and v_subtotal >= v_threshold then v_delivery_fee := 0;
   else v_delivery_fee := coalesce(nullif(v_settings->>'deliveryFee','')::numeric, 60); end if;
   v_order_number := 'EG-' || to_char(now(),'YYYYMMDD') || '-' || upper(substr(replace(gen_random_uuid()::text,'-',''),1,6));
-  insert into public.orders(order_number,user_id,customer_name,customer_email,customer_phone,governorate,area,delivery_address,notes,payment_method,status,subtotal,delivery_fee,total)
-  values(v_order_number,v_user_id,v_name,v_email,v_phone,v_governorate,v_area,v_address,v_notes,v_payment,'pending',v_subtotal,v_delivery_fee,v_subtotal+v_delivery_fee)
+  insert into public.orders(order_number,user_id,customer_name,customer_email,customer_phone,governorate,area,delivery_address,notes,payment_method,status,subtotal,discount,promotion_code,delivery_fee,total)
+  values(v_order_number,v_user_id,v_name,v_email,v_phone,v_governorate,v_area,v_address,v_notes,v_payment,'pending',v_subtotal,v_promotion_discount,v_promotion_code,v_delivery_fee,greatest(0,v_subtotal-v_promotion_discount+v_delivery_fee))
   returning id into v_order_id;
   insert into public.order_items(order_id,product_id,variant_id,product_snapshot,quantity,unit_price,line_total)
   select v_order_id,(value->>'product_id')::uuid,nullif(value->>'variant_id','')::uuid,value->'product_snapshot',(value->>'quantity')::integer,(value->>'unit_price')::numeric,(value->>'line_total')::numeric
