@@ -167,7 +167,7 @@
   });
   const repository = useRemote && Store.supabase.ready ? remote : unavailable;
   Store.repo = repository;
-  Store.repo.mode = useRemote && Store.supabase.ready ? 'supabase' : useRemote ? 'unavailable' : 'demo';
+  Store.repo.mode = useRemote && Store.supabase.ready ? 'supabase' : 'unavailable';
   Store.repo.helpers = { slugify: slugify, activeVariants: activeVariants, effectivePrice: effectivePrice, availableStock: availableStock, normalizePhone: normalizePhone, statuses: allowedStatuses };
   Store.useSupabase = useRemote && Store.supabase.ready;
 })(window.Store);
