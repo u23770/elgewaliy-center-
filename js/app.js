@@ -106,7 +106,7 @@
     if (action === 'clear-query') { Store.view.shop = { initialized: true, q: '', category: '', sort: 'featured' }; history.replaceState({}, '', Store.url('search.html')); await renderCurrent(); return; }
     if (action === 'apply-promo') { await Store.Checkout.applyPromotion(); return; }
     if (action === 'remove-promo') { Store.Checkout.removePromotion(); return; }
-    if (action === 'sign-out') { await Store.Auth.logout(); window.location.href = Store.url('index.html'); return; }
+    if (action === 'sign-out') { if (document.body.dataset.page && document.body.dataset.page.startsWith('admin-')) { if (Store.AdminGate) Store.AdminGate.revokeAccess(); window.location.replace(Store.url('admin/login.html')); } else { await Store.Auth.logout(); window.location.href = Store.url('index.html'); } return; }
     if (action === 'fill-demo') { const form = document.getElementById('login-form'); if (!form) return; const creds = actionNode.dataset.demo === 'admin' ? Store.Auth.adminDemo : Store.Auth.customerDemo; form.elements.email.value = creds.email; form.elements.password.value = creds.password; return; }
     if (action === 'admin-menu-open') { setAdminMenu(true); return; }
     if (action === 'admin-menu-close') { setAdminMenu(false); return; }
