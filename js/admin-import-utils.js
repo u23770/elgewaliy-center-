@@ -19,7 +19,7 @@
     slug: ['slug', 'product slug', 'الرابط'],
     stock: ['stock', 'quantity', 'qty', 'inventory', 'المخزون', 'الكمية'],
     variantSku: ['variant sku', 'option sku', 'variant code', 'كود المتغير', 'كود المقاس'],
-    size: ['size', 'sizes', 'المقاس', 'مقاس', 'الحجم'],
+    size: ['المقاس', 'مقاس', 'size', 'sizes', 'الحجم'],
     color: ['color', 'colour', 'اللون', 'لون'],
     colorEn: ['color en', 'colour en', 'color name en', 'colour name en', 'اللون انجليزي', 'اسم اللون انجليزي'],
     colorAr: ['color ar', 'colour ar', 'color name ar', 'colour name ar', 'اللون عربي', 'اسم اللون عربي'],
@@ -38,6 +38,7 @@
     .replace(/\p{M}/gu, '')
     .replace(/[()[\]{}:_\-/\\]+/g, ' ')
     .replace(/\s+/g, ' ')
+    .trim()
     .toLowerCase();
 
   function normalizeHeader(value) {
