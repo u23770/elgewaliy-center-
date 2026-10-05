@@ -1,9 +1,9 @@
-/* Static-site configuration. Only the Supabase URL and anon/public key may be placed here. */
+/* Production public configuration. The publishable/anon key is safe to expose in the browser; RLS and protected RPCs enforce authorization. */
 window.CEG_CONFIG = window.CEG_CONFIG || {
-  dataMode: 'demo',
-  supabaseUrl: '',
-  supabaseAnonKey: '',
-  emailConfirmation: false
+  dataMode: 'supabase',
+  supabaseUrl: 'https://vgnkudgahtrtwpbscnhr.supabase.co',
+  supabaseAnonKey: 'sb_publishable_H7bTCPkF8lIDHFWPyEvvtw_BfPXjGCN',
+  emailConfirmation: true
 };
 window.Store = window.Store || {};
 Object.assign(window.Store, {
@@ -24,7 +24,7 @@ Object.assign(window.Store, {
   },
   safeImage: function (value) {
     const candidate = String(value || '');
-    return /^(https?:\/\/|data:image\/(png|jpe?g|webp|gif|avif);base64,|assets\/|\.\.\/)/i.test(candidate) ? candidate : 'assets/images/fallback.svg';
+    return /^(https:\/\/|data:image\/(png|jpe?g|webp|gif|avif);base64,|assets\/|\.\.\/)/i.test(candidate) ? candidate : 'assets/images/fallback.svg';
   },
   id: function () {
     return window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'ceg-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
