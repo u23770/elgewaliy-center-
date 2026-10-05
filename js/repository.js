@@ -33,6 +33,13 @@
   function mapPromotion(row) { return remoteMappers ? remoteMappers.mapRemotePromotion(row) : { id: row.id, code: row.code || '', title: { en: row.title_en, ar: row.title_ar }, type: row.discount_type === 'percentage' ? 'percentage' : 'fixed', value: Number(row.discount_value), scope: row.scope || 'global', targetIds: Array.isArray(row.target_ids) ? row.target_ids : [], minOrder: Number(row.min_order_amount || 0), maxDiscount: row.max_discount == null ? null : Number(row.max_discount), usageLimit: row.usage_limit == null ? null : Number(row.usage_limit), usedCount: Number(row.used_count || 0), priority: Number(row.priority || 0), active: row.is_active !== false, startsAt: row.starts_at || '', endsAt: row.ends_at || '' }; }
   function mapOrder(row) { return remoteMappers ? remoteMappers.mapRemoteOrder(row) : { id: row.id, orderNumber: row.order_number, userId: row.customer_id || '', customer: { name: row.customer_name, email: '', phone: row.customer_phone }, address: { address: row.customer_address || '', notes: row.notes || '' }, paymentMethod: row.payment_method, status: row.status, subtotal: Number(row.subtotal || 0), discount: Number(row.discount || 0), promotionCode: row.promotion_code || '', deliveryFee: Number(row.delivery_fee || 0), total: Number(row.total || 0), items: [], createdAt: row.created_at, events: [] }; }
   async function remoteProducts(filters) {
+    if (filters && filters.includeInactive) {
+      const snapshot = await adminSnapshot();
+      const remoteCategories = (snapshot.categories || []).map(mapCategory);
+      let products = (snapshot.products || []).map(mapProduct);
+      products = products.map(function (product) { const category = remoteCategories.find(function (item) { return item.id === product.categoryId; }) || findCategory(product.categoryId, currentData()); product.category = category ? category.name : { en: '', ar: '' }; product.categorySlug = category ? category.slug : ''; return product; });
+      return filterProducts(products, filters || {}, currentData());
+    }
     const params = { select: '*,product_images(*),product_variants(*)', order: 'created_at.desc' };
     if (!(filters && filters.includeInactive)) params.is_active = 'eq.true';
     const results = await Promise.all([Store.supabase.rest('products', params), Store.supabase.rest('categories', { select: '*', is_active: 'eq.true' })]);
