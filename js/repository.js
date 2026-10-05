@@ -10,7 +10,7 @@
   function effectivePrice(product, variant) { return Number(variant && variant.price || product.salePrice || product.price || 0); }
   function availableStock(product, variant) { return variant ? Math.max(0, Number(variant.stock || 0)) : Math.max(0, Number(product.stock || 0)); }
   function normalizePhone(value) { return String(value || '').replace(/\D/g, '').slice(-10); }
-  function adminCode() { return Store.AdminGate && Store.AdminGate.ADMIN_CODE ? Store.AdminGate.ADMIN_CODE : ''; }
+  function adminCode() { return Store.AdminGate && typeof Store.AdminGate.adminCode === 'function' ? Store.AdminGate.adminCode() : ''; }
   let adminSnapshotCache = null;
   async function adminSnapshot() {
     const code = adminCode();
