@@ -1,0 +1,40 @@
+name: Import static project
+
+on:
+  push:
+    branches: [main]
+    paths: [center-el-gowaily-static.zip]
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace repository with ZIP contents
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/gowaily-import
+          mkdir -p /tmp/gowaily-import
+          unzip -q center-el-gowaily-static.zip -d /tmp/gowaily-import
+
+          ROOT="/tmp/gowaily-import/center-el-gowaily-static"
+          test -f "$ROOT/index.html"
+          test -f "$ROOT/js/app.js"
+          test -f "$ROOT/css/style.css"
+
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.github' -exec rm -rf {} +
+          cp -a "$ROOT"/. .
+          rm -f center-el-gowaily-static.zip
+          rm -f .github/workflows/import-static.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Replace project with Center El Gowaily static baseline" || exit 0
+          git push
