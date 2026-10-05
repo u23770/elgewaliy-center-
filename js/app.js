@@ -14,6 +14,46 @@
     const map = { home: t('brand') + ' | Cairo', shop: t('shop'), search: t('searchResults'), categories: t('categories'), product: t('productDetails'), cart: t('bag'), checkout: t('checkout'), 'order-success': t('orderConfirmed'), login: t('signIn'), register: t('register'), forgot: t('resetTitle'), profile: t('profileTitle'), orders: t('orders'), track: t('trackTitle'), about: t('about'), help: t('help'), 'admin-login': t('adminLogin'), 'admin-dashboard': t('dashboard'), 'admin-products': t('adminProducts'), 'admin-categories': t('adminCategories'), 'admin-inventory': t('inventory'), 'admin-attributes': t('attributes'), 'admin-orders': t('adminOrders'), 'admin-customers': t('customers'), 'admin-promotions': t('promotions'), 'admin-settings': t('settings'), 'admin-customizer': t('websiteCustomizer'), 'admin-content': t('websiteContent'), 'admin-media': t('mediaLibrary'), 'admin-sections': t('homepageSections'), 'admin-banners': t('banners'), 'admin-gallery': t('gallery'), 'admin-socials': t('socialLinks'), 'admin-zones': t('deliveryZones'), 'admin-deliveries': t('deliveries'), 'admin-drivers': t('drivers'), 'admin-reviews': t('reviews') };
     return (map[page] || t('brand')) + ' — ' + t('brand');
   }
+  async function applySiteChrome() {
+    if (!Store.repo || !Store.repo.getSiteConfig) return;
+    try {
+      const config = await Store.repo.getSiteConfig(false);
+      Store.view.siteConfig = config || {};
+      const util = window.StoreSiteConfig;
+      if (util && util.themeCssVariables) {
+        const vars = util.themeCssVariables(Store.view.siteConfig);
+        Object.keys(vars).forEach(function (key) { document.documentElement.style.setProperty(key, vars[key]); });
+      }
+      const identity = Store.view.siteConfig.identity || {};
+      const content = Store.view.siteConfig.content || {};
+      const name = Store.i18n.localized(identity.storeName) || t('brand');
+      const seo = content.seo || {};
+      const description = Store.i18n.localized(seo.description) || '';
+      if (document.body && !document.body.dataset.page.startsWith('admin-')) {
+        const favicon = identity.faviconPath || identity.logoPath;
+        if (favicon) {
+          let link = document.querySelector('link[rel="icon"]');
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+          }
+          link.href = Store.asset(Store.safeImage(favicon));
+        }
+        document.title = name;
+        if (description) {
+          let meta = document.querySelector('meta[name="description"]');
+          if (!meta) {
+            meta = document.createElement('meta');
+            meta.name = 'description';
+            document.head.appendChild(meta);
+          }
+          meta.content = description;
+        }
+      }
+    } catch (_) {}
+  }
+
   function captureFormState() {
     const values = [];
     document.querySelectorAll('#page-root input, #page-root select, #page-root textarea').forEach(function (field, index) {
@@ -162,6 +202,7 @@
   window.addEventListener('ceg:session-changed', function () { const countNode = document.getElementById('bag-count'); if (countNode) countNode.textContent = String(Store.Cart.count()); });
   async function start() {
     try { await Store.Auth.init(); } catch (_) {}
+    await applySiteChrome();
     await renderCurrent({ snapshot: null });
     if (document.body.dataset.page.startsWith('admin-') && Store.query('new') === '1') history.replaceState({}, '', window.location.pathname);
   }
