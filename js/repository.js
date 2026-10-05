@@ -193,6 +193,15 @@
     trackOrder: async function (orderNumber, phone) { const row = await Store.supabase.rpc('track_order', { p_order_number: orderNumber, p_phone: phone }); return row ? mapOrder(row) : null; },
     createOrder: async function (input) { const payload = { customer_name: input.customer.name, customer_email: input.customer.email || null, customer_phone: input.customer.phone, governorate: input.address.governorate, area: input.address.area, delivery_address: input.address.address, maps_link: input.address.mapsLink || '', zone_id: input.address.zoneId || null, subzone_id: input.address.subzoneId || null, notes: input.address.notes || '', payment_method: input.paymentMethod, promotion_code: input.promotionCode || '', items: input.items.map(function (item) { return { product_id: item.productId, variant_id: item.variantId || null, quantity: Number(item.quantity) }; }) }; const row = await Store.supabase.rpc('place_order', { p_order: payload }); return mapOrder(row); },
     updateOrderStatus: async function (id, status) { if (allowedStatuses.indexOf(status) < 0) throw new Error('Unknown order status.'); const actual = ({ pending:'new', confirmed:'accepted', preparing:'preparing', out_for_delivery:'out_for_delivery', delivered:'delivered', cancelled:'cancelled' })[status]; return rpcAdmin('admin_update_order_status', { p_order_id: id, p_status: actual, p_note: '' }); },
+    listReviews: async function () {
+      const rows = (await adminSnapshot()).reviews || [];
+      return rows.map(function (row) { return { id: row.id, productId: row.product_id || '', customerName: row.customer_name || '', rating: Number(row.rating || 0), title: row.title || '', body: row.body || '', approved: row.approved !== false, createdAt: row.created_at || '' }; });
+    },
+    saveReview: async function (input) {
+      const id = await rpcAdmin('admin_save_review', { p_id: input.id || null, p_payload: { product_id: input.productId || null, customer_name: input.customerName || '', rating: Math.max(1, Math.min(5, Number(input.rating || 5))), title: input.title || '', body: input.body || '', approved: input.approved !== false } });
+      return Object.assign({}, input, { id: id });
+    },
+    deleteReview: async function (id) { await rpcAdmin('admin_archive_review', { p_id: id }); },
     listCustomers: async function () { const snapshot = await adminSnapshot(); return (snapshot.customers || []).map(function (row) { return { id: row.id, fullName: row.name, email: row.email || '', phone: row.phone, createdAt: row.created_at, role: 'customer', authUserId: row.auth_user_id || '' }; }); },
     subscribeNewsletter: async function (email) { const clean = String(email || '').trim().toLowerCase(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) throw new Error('Please enter a valid email.'); return Store.supabase.rpc('subscribe_newsletter', { p_email: clean }); },
     updateCustomer: async function (userId, patch) {
