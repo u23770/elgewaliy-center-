@@ -224,7 +224,7 @@
 
   async function promotionsContent() {
     const [promotions, products, categories] = await Promise.all([
-      Store.repo.listPromotions(),
+      Store.repo.listPromotions(true),
       Store.repo.listProducts({ includeInactive: true }),
       Store.repo.listCategories(true)
     ]);
