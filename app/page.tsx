@@ -7,7 +7,7 @@ import type { Category, Product } from "@/lib/types";
 import { addCartItem, cartCount, cartTotal, removeCartItem, updateCartQuantity, type CartItem } from "@/lib/cart";
 import { selectVariant, uniqueOptions, type VariantLike } from "@/lib/product-variants";
 import { getProductImage } from "@/lib/product-media";
-import { filterProducts, getVariantPrice } from "@/lib/storefront";
+import { filterProducts, getVariantPrice, shouldOpenCart } from "@/lib/storefront";
 
 type Variant = VariantLike & { product_id: string };
 type ProductImage = { id: string; product_id: string; url: string; alt_ar: string | null; alt_en: string | null; sort_order: number };
@@ -73,6 +73,10 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("elgewaliy-cart", JSON.stringify(cart));
   }, [cart]);
+
+  useEffect(() => {
+    if (shouldOpenCart(window.location.search)) setCartOpen(true);
+  }, []);
 
   useEffect(() => {
     let active = true;

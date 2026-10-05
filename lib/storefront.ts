@@ -41,6 +41,8 @@ export function getVisibleVariantOptions(
   };
 }
 
+export function shouldOpenCart(search: string) { return new URLSearchParams(search).get("cart") === "open"; }
+
 export function getVariantPrice(basePrice: number, variant: Pick<StoreVariant, "price_override"> | null | undefined) {
   const value = Number(variant?.price_override ?? NaN);
   return Number.isFinite(value) ? value : Number(basePrice);

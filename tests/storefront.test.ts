@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { filterProducts, getVisibleVariantOptions, getVariantPrice } from "../lib/storefront.ts";
+import { filterProducts, getVisibleVariantOptions, getVariantPrice, shouldOpenCart } from "../lib/storefront.ts";
 
 test("filters products by category and Arabic/English search", () => {
   const products = [
@@ -24,6 +24,8 @@ test("only returns variant options that have stock when a compatible choice exis
   assert.deepEqual(options.colors, ["Black"]);
   assert.deepEqual(options.sizes, ["M", "L"]);
 });
+
+test("opens cart from the cart query flag", () => { assert.equal(shouldOpenCart("?cart=open"), true); assert.equal(shouldOpenCart("?cart=closed"), false); });
 
 test("uses variant override price, otherwise base product price", () => {
   assert.equal(getVariantPrice(399, { price_override: 450 }), 450);
