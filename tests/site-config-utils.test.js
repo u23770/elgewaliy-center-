@@ -9,7 +9,7 @@ test('normalizes theme colors and keeps safe defaults',()=>{
 });
 
 test('merges partial website settings without losing existing sections',()=>{
-  const out=mergeSiteConfig({content:{about:{titleEn:'New title'}}});
+  const out=mergeSiteConfig({content:{about:{title:{en:'New title'}}}});
   assert.equal(out.content.about.titleEn,'New title');
   assert.equal(out.homepage.sections.featured.visible,true);
   assert.equal(out.homepage.sections.featured.order,3);
