@@ -8,10 +8,10 @@
   'use strict';
 
   const FIELD_ALIASES = {
-    nameEn: ['product name en', 'product name', 'name en', 'name', 'title en', 'title', 'اسم المنتج انجليزي', 'اسم المنتج بالانجليزية', 'الاسم انجليزي', 'الاسم'],
+    nameEn: ['product name en', 'product name', 'name en', 'name', 'title en', 'title'],
     nameAr: ['product name ar', 'name ar', 'title ar', 'اسم المنتج عربي', 'اسم المنتج بالعربية', 'الاسم عربي', 'اسم المنتج'],
-    descriptionEn: ['description en', 'description', 'details en', 'description english', 'الوصف انجليزي', 'الوصف'],
-    descriptionAr: ['description ar', 'الوصف عربي', 'الوصف بالعربية'],
+    descriptionEn: ['description en', 'description', 'details en', 'description english'],
+    descriptionAr: ['description ar', 'الوصف عربي', 'الوصف بالعربية', 'الوصف'],
     category: ['category', 'category name', 'collection', 'department', 'القسم', 'التصنيف', 'الفئة'],
     price: ['price', 'regular price', 'base price', 'السعر', 'السعر الاساسي', 'السعر الأساسي'],
     salePrice: ['sale price', 'discounted price', 'offer price', 'سعر الخصم', 'السعر بعد الخصم', 'سعر العرض'],
@@ -32,12 +32,12 @@
   };
 
   const normal = (value) => String(value == null ? '' : value)
-    .replace(/^\\uFEFF/, '')
+    .replace(/^\uFEFF/, '')
     .trim()
     .normalize('NFKC')
-    .replace(/[\\u064B-\\u065F\\u0670]/g, '')
-    .replace(/[()\\[\\]{}:_\\-\\/\\\\]+/g, ' ')
-    .replace(/\\s+/g, ' ')
+    .replace(/\p{M}/gu, '')
+    .replace(/[()[\]{}:_\-/\\]+/g, ' ')
+    .replace(/\s+/g, ' ')
     .toLowerCase();
 
   function normalizeHeader(value) {
@@ -50,18 +50,18 @@
     Object.keys(FIELD_ALIASES).forEach((field) => {
       const aliases = FIELD_ALIASES[field].map(normal);
       let best = null;
-      list.forEach((header) => {
+      list.forEach((header, index) => {
         const key = normal(header);
         if (!key) return;
         const exact = aliases.indexOf(key);
         if (exact >= 0) {
-          const score = 1000 - exact;
+          const score = 1000 - exact * 2 - index / 10000;
           if (!best || score > best.score) best = { header, score };
           return;
         }
-        const fuzzy = aliases.some((alias) => alias && (key.includes(alias) || alias.includes(key)));
-        if (fuzzy) {
-          const score = 100 - Math.abs(key.length - aliases[0].length);
+        const fuzzyIndex = aliases.findIndex((alias) => alias && (key.includes(alias) || alias.includes(key)));
+        if (fuzzyIndex >= 0) {
+          const score = 100 - fuzzyIndex * 2 - Math.abs(key.length - aliases[fuzzyIndex].length);
           if (!best || score > best.score) best = { header, score };
         }
       });
@@ -72,7 +72,7 @@
 
   function splitList(value) {
     return String(value == null ? '' : value)
-      .split(/[|,\\n;]+/)
+      .split(/[|,\n;]+/)
       .map((item) => item.trim())
       .filter(Boolean);
   }
@@ -90,7 +90,7 @@
     return String(value == null ? '' : value)
       .trim()
       .normalize('NFKD')
-      .replace(/[\\u0300-\\u036f]/g, '')
+      .replace(/\p{M}/gu, '')
       .replace(/[^a-zA-Z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .toLowerCase() || 'product';
@@ -108,7 +108,7 @@
   }
 
   function normalizeIdentity(value) {
-    return normal(value).replace(/[^a-z0-9\\u0600-\\u06ff]+/g, '');
+    return normal(value).replace(/[^a-z0-9\u0600-\u06ff]+/g, '');
   }
 
   function categoryMatch(input, category) {
@@ -136,13 +136,6 @@
     return 'name:' + normalizeIdentity(en || ar);
   }
 
-  function variantIdentity(variant) {
-    return [
-      normalizeIdentity(variant.size || ''),
-      normalizeIdentity(variant.color && (variant.color.key || variant.color.name.en || variant.color.name.ar) || '')
-    ].join('|');
-  }
-
   function existingMatch(product, existingProducts) {
     const sku = normalizeIdentity(product.sku);
     const en = normalizeIdentity(product.name.en);
@@ -154,10 +147,28 @@
     ) || null;
   }
 
+  function addUniqueCatalogSize(size, catalogAdds, existingSizes) {
+    if (!size) return;
+    const exists = (existingSizes || []).some((item) => normalizeIdentity(item.label) === normalizeIdentity(size));
+    const pending = catalogAdds.sizes.some((item) => normalizeIdentity(item.label) === normalizeIdentity(size));
+    if (!exists && !pending) catalogAdds.sizes.push({ label: size, order: catalogAdds.sizes.length * 10, active: true });
+  }
+
+  function addUniqueCatalogColor(color, catalogAdds, existingColors) {
+    if (!color) return;
+    const exists = (existingColors || []).some((item) =>
+      normalizeIdentity(item.key || item.name?.en || item.name?.ar) === normalizeIdentity(color.key)
+    );
+    const pending = catalogAdds.colors.some((item) => normalizeIdentity(item.key) === normalizeIdentity(color.key));
+    if (!exists && !pending) catalogAdds.colors.push(color);
+  }
+
   function buildImportPlan(rows, mapping, options) {
     const opts = Object.assign({
       categories: [],
       existingProducts: [],
+      existingSizes: [],
+      existingColors: [],
       mode: 'add_update'
     }, options || {});
     const errors = [];
@@ -167,8 +178,7 @@
 
     Array.from(rows || []).forEach((row, index) => {
       const rowNumber = index + 2;
-      const values = Object.values(row || {});
-      if (!values.some((value) => String(value == null ? '' : value).trim() !== '')) return;
+      if (!Object.values(row || {}).some((value) => String(value == null ? '' : value).trim() !== '')) return;
       const nameEn = String(valueFrom(row, mapping, 'nameEn') || '').trim();
       const nameAr = String(valueFrom(row, mapping, 'nameAr') || '').trim();
       const key = productIdentity(row, mapping);
@@ -182,18 +192,20 @@
 
     const items = [];
     const seenSkus = new Set();
-    groups.forEach((group, identity) => {
+
+    groups.forEach((group) => {
       const first = group[0].row;
       const firstRow = group[0].rowNumber;
+      let valid = true;
       const nameEn = group.map((item) => item.nameEn).find(Boolean) || '';
       const nameAr = group.map((item) => item.nameAr).find(Boolean) || nameEn;
+
       if (nameEn.length < 2 && nameAr.length < 2) {
         errors.push({ row: firstRow, message: 'Product name must be at least 2 characters.' });
         return;
       }
 
-      const rawPrice = valueFrom(first, mapping, 'price');
-      const price = numberFrom(rawPrice);
+      const price = numberFrom(valueFrom(first, mapping, 'price'));
       if (!(price > 0)) {
         errors.push({ row: firstRow, message: 'Price must be greater than 0.' });
         return;
@@ -255,6 +267,7 @@
 
       const variantKeys = new Set();
       let hasVariant = false;
+
       group.forEach(({ row, rowNumber }) => {
         splitList(valueFrom(row, mapping, 'image')).forEach((url) => {
           if (!product.images.includes(url)) product.images.push(url);
@@ -266,13 +279,15 @@
         const colorAr = String(valueFrom(row, mapping, 'colorAr') || '').trim();
         const colorHex = String(valueFrom(row, mapping, 'colorHex') || '').trim();
         const colorName = colorEn || colorAr || colorRaw;
-        const variantExists = Boolean(size || colorName);
-        if (!variantExists) {
-          const simpleStockValue = valueFrom(row, mapping, 'stock');
-          if (simpleStockValue !== '' && simpleStockValue != null) {
-            const simpleStock = numberFrom(simpleStockValue);
+        if (!size && !colorName) {
+          const rawStock = valueFrom(row, mapping, 'stock');
+          if (rawStock !== '' && rawStock != null) {
+            const simpleStock = numberFrom(rawStock);
             if (Number.isFinite(simpleStock) && simpleStock >= 0) product.stock = Math.floor(simpleStock);
-            else errors.push({ row: rowNumber, message: 'Stock must be a non-negative number.' });
+            else {
+              valid = false;
+              errors.push({ row: rowNumber, message: 'Stock must be a non-negative number.' });
+            }
           }
           return;
         }
@@ -280,6 +295,7 @@
         hasVariant = true;
         const key = normalizeIdentity(size) + '|' + normalizeIdentity(colorRaw || colorEn || colorAr);
         if (variantKeys.has(key)) {
+          valid = false;
           errors.push({ row: rowNumber, message: 'Duplicate variant for the product (same size/colour).' });
           return;
         }
@@ -289,6 +305,7 @@
         const stockRaw = variantStockRaw === '' || variantStockRaw == null ? valueFrom(row, mapping, 'stock') : variantStockRaw;
         const variantStock = stockRaw === '' || stockRaw == null ? 0 : numberFrom(stockRaw);
         if (!Number.isFinite(variantStock) || variantStock < 0) {
+          valid = false;
           errors.push({ row: rowNumber, message: 'Variant stock must be a non-negative number.' });
           return;
         }
@@ -296,6 +313,7 @@
         const variantPriceRaw = valueFrom(row, mapping, 'variantPrice');
         const variantPrice = variantPriceRaw === '' || variantPriceRaw == null ? null : numberFrom(variantPriceRaw);
         if (variantPrice != null && (!Number.isFinite(variantPrice) || variantPrice < 0)) {
+          valid = false;
           errors.push({ row: rowNumber, message: 'Variant price must be zero or greater.' });
           return;
         }
@@ -324,26 +342,18 @@
         }
 
         product.variants.push(variant);
-        if (size && !opts.categories.some(() => false) && !catalogAdds.sizes.some((item) => normalizeIdentity(item.label) === normalizeIdentity(size))) {
-          catalogAdds.sizes.push({ label: size, order: catalogAdds.sizes.length * 10, active: true });
-        }
-        if (color && !catalogAdds.colors.some((item) => normalizeIdentity(item.key) === normalizeIdentity(color.key))) {
-          catalogAdds.colors.push({
-            key: color.key,
-            name: color.name,
-            hex: color.hex,
-            active: true
-          });
-        }
+        addUniqueCatalogSize(size, catalogAdds, opts.existingSizes);
+        addUniqueCatalogColor(color, catalogAdds, opts.existingColors);
       });
 
+      if (!valid) return;
       if (hasVariant) product.stock = 0;
       if (existing) warnings.push({ row: firstRow, message: 'Existing product will be updated: ' + sku });
       items.push(product);
     });
 
     return {
-      items: errors.length ? items.filter((item) => !errors.some((error) => error.row === (item.__row || 0))) : items,
+      items,
       errors,
       warnings,
       catalogAdds,
@@ -357,11 +367,5 @@
     };
   }
 
-  return {
-    normalizeHeader,
-    inferColumnMapping,
-    splitList,
-    parseBoolean,
-    buildImportPlan
-  };
+  return { normalizeHeader, inferColumnMapping, splitList, parseBoolean, buildImportPlan };
 });
