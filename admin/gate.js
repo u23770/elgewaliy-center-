@@ -136,6 +136,7 @@
           const submit = form.querySelector('button[type="submit"]');
           if (submit) submit.disabled = true;
           signIn(field && field.value).then(function () {
+            if (field) field.value = '';
             openDashboard();
           }).catch(function (reason) {
             if (error) { error.textContent = reason.message || 'Invalid admin access code.'; error.hidden = false; }
@@ -144,7 +145,15 @@
         });
       }
       const page = root.document.body && root.document.body.dataset.page;
-      if (page && page !== 'admin-login' && !hasAccess()) root.location.replace(loginUrl());
+      if (page && page !== 'admin-login') {
+        if (!hasAccess()) {
+          root.location.replace(loginUrl());
+        } else {
+          verifySession().then(function (valid) {
+            if (!valid) return revokeAccess().then(function () { root.location.replace(loginUrl()); });
+          }).catch(function () { revokeAccess().then(function () { root.location.replace(loginUrl()); }); });
+        }
+      }
     };
     if (root.document.readyState === 'loading') root.document.addEventListener('DOMContentLoaded', init, { once: true });
     else init();
