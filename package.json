@@ -1,8 +1,0 @@
-{
-  "name":"elgewaliy-center",
-  "version":"0.1.0",
-  "private":true,
-  "scripts":{"dev":"next dev","build":"next build","start":"next start","lint":"next lint","test":"node --experimental-strip-types --test tests/*.test.mts tests/*.test.ts"},
-  "dependencies":{"@supabase/supabase-js":"^2.58.0","next":"latest","react":"latest","react-dom":"latest"},
-  "devDependencies":{"@types/node":"latest","@types/react":"latest","@types/react-dom":"latest","typescript":"latest","tailwindcss":"^4.1.14","@tailwindcss/postcss":"^4.1.14"}
-}
