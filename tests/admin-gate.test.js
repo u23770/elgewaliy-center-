@@ -9,10 +9,10 @@ const {
   revokeAccess
 } = require('../admin/gate.js');
 
-test('accepts the configured admin access code and rejects other codes', () => {
-  assert.equal(isValidCode(ADMIN_CODE), true);
-  assert.equal(isValidCode('wrong-code'), false);
-  assert.equal(isValidCode(''), false);
+test('accepts the configured admin access code and rejects other codes', async () => {
+  assert.equal(await isValidCode(ADMIN_CODE), true);
+  assert.equal(await isValidCode('wrong-code'), false);
+  assert.equal(await isValidCode(''), false);
 });
 
 test('stores admin access separately in session storage', () => {
