@@ -29,3 +29,9 @@ test('rejects unsafe colors',()=>{
   assert.equal(normalizeHexColor('rgb(1,2,3)'),'#252824');
   assert.equal(normalizeHexColor('#abcdef'),'#abcdef');
 });
+
+test('provides homepage section title defaults when settings are missing',()=>{
+  const out=normalizeSiteConfig({homepage:{}});
+  assert.equal(out.homepage.sectionTitles.featured.en,'Featured pieces');
+  assert.equal(out.homepage.sectionTitles.categories.ar,'تسوق حسب القسم');
+});
