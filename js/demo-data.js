@@ -105,7 +105,7 @@
       { id: 'demo-customer-user', fullName: 'Mariam Hassan', email: 'customer@centerelgowaily.demo', phone: '+20 101 234 5678', createdAt: '2026-10-01T10:00:00.000Z', role: 'customer' }
     ],
     promotions: [
-      { id: 'promo-welcome', code: 'GOWAILY10', title: { ar: 'خصم ترحيبي', en: 'Welcome offer' }, type: 'percentage', value: 10, active: true, startsAt: start, endsAt: end }
+      { id: 'promo-welcome', code: 'GOWAILY10', title: { ar: 'خصم ترحيبي', en: 'Welcome offer' }, type: 'percentage', value: 10, scope: 'global', targetIds: [], minOrder: 0, maxDiscount: null, usageLimit: null, usedCount: 0, priority: 10, active: true, startsAt: start, endsAt: end }
     ],
     settings: {
       storeName: { ar: 'سنتر الجويلي', en: 'Center El Gowaily' },
