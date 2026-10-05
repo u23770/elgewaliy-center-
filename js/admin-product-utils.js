@@ -3,7 +3,6 @@
   else root.StoreAdminProduct = factory();
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
-
   function normalizeVariantSavePayload(variants) {
     return (variants || []).map(function (item) {
       return {
@@ -17,6 +16,5 @@
       };
     });
   }
-
   return { normalizeVariantSavePayload };
 });
