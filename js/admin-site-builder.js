@@ -135,7 +135,26 @@
   }
   function galleryForm(item){ item=item||{id:'',title:{en:'',ar:''},image:'assets/images/look-women.jpg',link:'',active:true,order:0}; return '<form id="gallery-form" class="admin-editor-form"><input type="hidden" name="id" value="'+esc(item.id)+'">'+field('titleEn','Title · English',item.title.en)+field('titleAr','العنوان · العربية',item.title.ar)+field('image','Image path or URL',item.image)+field('link','Link URL',item.link)+field('order','Display order',item.order,'number','min="0" step="1"')+'<label class="check-row"><input name="active" type="checkbox" '+(item.active?'checked':'')+'><span>'+t('active')+'</span></label><div class="modal-actions"><button type="button" class="button button-outline" data-action="modal-close">'+t('cancel')+'</button><button class="button button-primary" type="submit">'+t('save')+'</button></div></form>'; }
 
-  async function socialsPage(){ const items=await Store.repo.listSocials(true); const cards=items.map(function(s){return '<article class="admin-panel"><div class="admin-section-head"><div><span class="eyebrow">'+esc(s.platform)+'</span><h2>'+esc(s.label||s.platform)+'</h2><small>'+esc(s.url)+'</small></div><div class="admin-row-actions"><button class="button button-outline button-small" type="button" data-social-edit="'+esc(s.id)+'">'+t('edit')+'</button><button class="icon-button danger-icon" type="button" data-social-delete="'+esc(s.id)+'">'+C().icon('trash',15)+'</button></div></div></article>';}).join(''); return Store.Admin.shell('socials',t('socialLinks'),'<div class="admin-toolbar"><span>'+items.length+' · '+t('socialLinks')+'</span><button class="button button-primary" type="button" id="add-social">＋ '+t('save')+'</button></div><div class="admin-dashboard-grid">'+(cards||C().empty('info',tx('No social links yet','لا توجد روابط تواصل بعد')))+( '</div>' );}
+  async function socialsPage() {
+    const items = await Store.repo.listSocials(true);
+    const cards = items.map(function (s) {
+      const activeText = s.active ? t('active') : t('inactive');
+      return '<article class="admin-panel"><div class="admin-section-head">' +
+        '<div><span class="eyebrow">' + esc(s.platform) + ' · ' + activeText + '</span>' +
+        '<h2>' + esc(s.label || s.platform) + '</h2><small>' + esc(s.url) + '</small></div>' +
+        '<div class="admin-row-actions">' +
+        '<button class="button button-outline button-small" type="button" data-social-edit="' + esc(s.id) + '">' + t('edit') + '</button>' +
+        '<button class="icon-button danger-icon" type="button" data-social-delete="' + esc(s.id) + '">' + C().icon('trash',15) + '</button>' +
+        '</div></div></article>';
+    }).join('');
+    const content =
+      '<div class="admin-toolbar"><span>' + items.length + ' · ' + t('socialLinks') + '</span>' +
+      '<button class="button button-primary" type="button" id="add-social">＋ ' + tx('Add link','إضافة رابط') + '</button></div>' +
+      '<div class="admin-dashboard-grid">' +
+      (cards || C().empty('info', tx('No social links yet','لا توجد روابط تواصل بعد'))) +
+      '</div>';
+    return Store.Admin.shell('socials', t('socialLinks'), content);
+  }
   function socialForm(item){ item=item||{id:'',platform:'instagram',label:'',url:'',active:true,order:0}; return '<form id="social-form" class="admin-editor-form"><input type="hidden" name="id" value="'+esc(item.id)+'">'+field('platform','Platform',item.platform)+field('label','Label',item.label)+field('url','URL',item.url,'url')+field('order','Display order',item.order,'number','min="0" step="1"')+'<label class="check-row"><input name="active" type="checkbox" '+(item.active?'checked':'')+'><span>'+t('active')+'</span></label><div class="modal-actions"><button type="button" class="button button-outline" data-action="modal-close">'+t('cancel')+'</button><button class="button button-primary" type="submit">'+t('save')+'</button></div></form>'; }
 
   async function zonesPage(){ const zones=await Store.repo.listZones(true), subzones=await Store.repo.listSubzones(true); const zoneCards=zones.map(function(z){const children=subzones.filter(function(s){return s.zoneId===z.id;}).map(function(s){return '<div class="quick-action"><i>•</i><span>'+esc(loc(s.name))+' · '+C().money(s.fee)+'</span><button class="icon-button danger-icon" type="button" data-subzone-delete="'+esc(s.id)+'">×</button></div>';}).join(''); return '<article class="admin-panel"><div class="admin-section-head"><div><h2>'+esc(loc(z.name))+'</h2><small>'+C().money(z.fee)+' · '+(z.freeThreshold?C().money(z.freeThreshold):tx('No free threshold','لا يوجد حد مجاني'))+'</small></div><div class="admin-row-actions"><button class="button button-outline button-small" type="button" data-zone-edit="'+esc(z.id)+'">'+t('edit')+'</button><button class="icon-button danger-icon" type="button" data-zone-delete="'+esc(z.id)+'">×</button></div></div><div class="admin-stack">'+(children||'<small>'+tx('No subzones','لا توجد مناطق فرعية')+'</small>')+'</div><button class="button button-outline button-small" type="button" data-subzone-add="'+esc(z.id)+'">＋ '+tx('Add subzone','إضافة منطقة فرعية')+'</button></article>';}).join('');
