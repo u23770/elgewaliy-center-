@@ -11,7 +11,7 @@
     'admin-login': Store.Pages.login
   };
   function titleFor(page) {
-    const map = { home: t('brand') + ' | Cairo', shop: t('shop'), search: t('searchResults'), categories: t('categories'), product: t('productDetails'), cart: t('bag'), checkout: t('checkout'), 'order-success': t('orderConfirmed'), login: t('signIn'), register: t('register'), forgot: t('resetTitle'), profile: t('profileTitle'), orders: t('orders'), track: t('trackTitle'), about: t('about'), help: t('help'), 'admin-login': t('adminLogin'), 'admin-dashboard': t('dashboard'), 'admin-products': t('adminProducts'), 'admin-categories': t('adminCategories'), 'admin-inventory': t('inventory'), 'admin-attributes': t('attributes'), 'admin-orders': t('adminOrders'), 'admin-customers': t('customers'), 'admin-promotions': t('promotions'), 'admin-settings': t('settings') };
+    const map = { home: t('brand') + ' | Cairo', shop: t('shop'), search: t('searchResults'), categories: t('categories'), product: t('productDetails'), cart: t('bag'), checkout: t('checkout'), 'order-success': t('orderConfirmed'), login: t('signIn'), register: t('register'), forgot: t('resetTitle'), profile: t('profileTitle'), orders: t('orders'), track: t('trackTitle'), about: t('about'), help: t('help'), 'admin-login': t('adminLogin'), 'admin-dashboard': t('dashboard'), 'admin-products': t('adminProducts'), 'admin-categories': t('adminCategories'), 'admin-inventory': t('inventory'), 'admin-attributes': t('attributes'), 'admin-orders': t('adminOrders'), 'admin-customers': t('customers'), 'admin-promotions': t('promotions'), 'admin-settings': t('settings'), 'admin-customizer': t('websiteCustomizer'), 'admin-content': t('websiteContent'), 'admin-media': t('mediaLibrary'), 'admin-sections': t('homepageSections'), 'admin-banners': t('banners'), 'admin-gallery': t('gallery'), 'admin-socials': t('socialLinks'), 'admin-zones': t('deliveryZones'), 'admin-deliveries': t('deliveries'), 'admin-drivers': t('drivers'), 'admin-reviews': t('reviews') };
     return (map[page] || t('brand')) + ' — ' + t('brand');
   }
   function captureFormState() {
@@ -55,7 +55,9 @@
       const header = document.getElementById('site-header'); const footer = document.getElementById('site-footer');
       if (header) header.innerHTML = ''; if (footer) footer.innerHTML = '';
       try {
+        const websiteAdmin = ['admin-customizer','admin-content','admin-media','admin-sections','admin-banners','admin-gallery','admin-socials','admin-zones','admin-deliveries','admin-drivers','admin-reviews'];
         if (page === 'admin-login') await renderers[page](root);
+        else if (websiteAdmin.indexOf(page) >= 0 && Store.AdminSite) await Store.AdminSite.render(page, root);
         else if (adminPages.indexOf(page) >= 0) await Store.Admin.render(page, root);
         else await PagesNotFound(root);
       } catch (error) { root.innerHTML = C().error(error.message || t('errorBody'), true); }
