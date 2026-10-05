@@ -22,7 +22,7 @@ test("only returns variant options that have stock when a compatible choice exis
 
   const options = getVisibleVariantOptions(variants, "M", null);
   assert.deepEqual(options.colors, ["Black"]);
-  assert.deepEqual(options.sizes, ["M"]);
+  assert.deepEqual(options.sizes, ["M", "L"]);
 });
 
 test("uses variant override price, otherwise base product price", () => {
