@@ -85,7 +85,7 @@
       customer: { name: row.customer_name, email: '', phone: row.customer_phone },
       address: { governorate: '', area: '', address: row.customer_address || '', notes: row.notes || '' },
       paymentMethod: row.payment_method,
-      status: row.status,
+      status: ({ new: 'pending', accepted: 'confirmed', preparing: 'preparing', ready: 'preparing', shipped: 'out_for_delivery', out_for_delivery: 'out_for_delivery', delivered: 'delivered', cancelled: 'cancelled' }[row.status] || row.status),
       subtotal: number(row.subtotal),
       discount: number(row.discount),
       promotionCode: row.promotion_code || '',
