@@ -8,6 +8,7 @@ window.CEG_CONFIG = window.CEG_CONFIG || {
 window.Store = window.Store || {};
 Object.assign(window.Store, {
   config: window.CEG_CONFIG,
+  useSupabase: window.CEG_CONFIG.dataMode === 'supabase',
   view: {},
   root: function () { return document.body && document.body.dataset.root ? document.body.dataset.root : './'; },
   url: function (path) { return this.root() + String(path || '').replace(/^\/+/, ''); },
