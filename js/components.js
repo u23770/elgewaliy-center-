@@ -65,15 +65,20 @@
   function skeletons(count) {
     return '<div class="product-grid skeleton-grid" aria-label="' + t('loading') + '">' + Array.from({ length: count || 4 }).map(function () { return '<div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>'; }).join('') + '</div>';
   }
-  function header(categories) {
+  function header(categories, config) {
     const user = Store.Auth && Store.Auth.currentUser();
+    const site = config || (Store.StoreSiteConfig ? Store.StoreSiteConfig.normalizeSiteConfig({}) : {});
+    const identity = site.identity || {};
+    const storeName = Store.i18n.localized(identity.storeName) || t('brand');
+    const logo = Store.asset(Store.safeImage(identity.logoPath || 'assets/icon.svg'));
+    const announcement = Store.i18n.localized(identity.announcement) || t('announcement');
     const categoryLinks = (categories || []).filter(function (category) { return category.active; }).slice(0, 6).map(function (category) {
       return '<a href="' + Store.url('shop.html?category=' + encodeURIComponent(category.id)) + '">' + Store.escape(Store.i18n.localized(category.name)) + '</a>';
     }).join('');
     const accountLink = user ? Store.url('profile.html') : Store.url('login.html');
-    return '<div class="announcement"><span class="announcement-mark">✳</span><span>' + t('announcement') + '</span><span class="announcement-divider">·</span><a href="' + Store.url('track.html') + '">' + t('trackOrder') + '</a></div>' +
+    return '<div class="announcement"><span class="announcement-mark">✳</span><span>' + Store.escape(announcement) + '</span><span class="announcement-divider">·</span><a href="' + Store.url('track.html') + '">' + t('trackOrder') + '</a></div>' +
       '<header class="site-header"><div class="header-main page-wrap">' +
-      '<a class="brand-lockup" href="' + Store.url('index.html') + '" aria-label="' + t('brand') + ' home"><span class="brand-mark"><b>ج</b><i></i></span><span class="brand-copy"><strong>' + t('brand') + '</strong><small>CAIRO · EGYPT</small></span></a>' +
+      '<a class="brand-lockup" href="' + Store.url('index.html') + '" aria-label="' + Store.escape(storeName) + ' home"><span class="brand-mark"><img src="' + logo + '" alt="" onerror="this.remove()"><b>ج</b><i></i></span><span class="brand-copy"><strong>' + Store.escape(storeName) + '</strong><small>' + Store.escape(Store.i18n.localized(identity.tagline) || 'CAIRO · EGYPT') + '</small></span></a> +
       '<nav class="primary-nav" aria-label="' + t('categories') + '"><a href="' + Store.url('index.html') + '">' + t('home') + '</a><a href="' + Store.url('shop.html') + '">' + t('shop') + '</a><a href="' + Store.url('categories.html') + '">' + t('categories') + '</a><a href="' + Store.url('shop.html?sort=newest') + '">' + t('newArrivals') + '</a></nav>' +
       '<form class="header-search" action="' + Store.url('search.html') + '" method="get"><label class="visually-hidden" for="header-search-input">' + t('search') + '</label><input id="header-search-input" name="q" type="search" placeholder="' + t('searchPlaceholder') + '" autocomplete="off"><button type="submit" aria-label="' + t('search') + '">' + icon('search', 17) + '</button></form>' +
       '<div class="header-actions"><button type="button" class="language-toggle" data-action="switch-language" aria-label="' + t('language') + '">' + t('language') + '</button><a class="header-account" href="' + accountLink + '" aria-label="' + (user ? t('account') : t('signIn')) + '">' + icon('user', 19) + '<span>' + (user ? t('account') : t('signIn')) + '</span></a><button class="header-bag" type="button" data-action="cart-open" aria-label="' + t('bag') + '">' + icon('bag', 20) + '<span class="bag-count" id="bag-count">' + (Store.Cart ? Store.Cart.count() : 0) + '</span></button><button class="mobile-search-button" type="button" data-action="mobile-search" aria-label="' + t('search') + '">' + icon('search', 19) + '</button><button class="mobile-menu-button" type="button" data-action="mobile-menu" aria-expanded="false" aria-controls="mobile-navigation" aria-label="' + t('menu') + '">' + icon('menu', 21) + '</button></div>' +
@@ -84,19 +89,30 @@
   async function renderHeader(target) {
     const host = target || document.getElementById('site-header');
     if (!host) return;
-    host.innerHTML = header([]);
-    try { const categories = await Store.repo.listCategories(); host.innerHTML = header(categories); }
-    catch (_) { host.innerHTML = header([]); }
+    host.innerHTML = header([], {});
+    try { const results = await Promise.all([Store.repo.listCategories(), Store.repo.getSiteConfig(false)]); host.innerHTML = header(results[0], results[1]); }
+    catch (_) { host.innerHTML = header([], {}); }
   }
   async function renderFooter(target) {
     const host = target || document.getElementById('site-footer');
     if (!host) return;
-    const categories = await Store.repo.listCategories().catch(function () { return []; });
-    const settings = await Store.repo.getSettings().catch(function () { return Store.demoData.settings; });
+    const [categories, config] = await Promise.all([
+      Store.repo.listCategories().catch(function () { return []; }),
+      Store.repo.getSiteConfig(false).catch(function () { return {}; })
+    ]);
+    const site = config || {};
+    const identity = site.identity || {};
+    const content = site.content || {};
+    const contact = content.contact || {};
+    const footerCfg = content.footer || {};
+    const storeName = Store.i18n.localized(identity.storeName) || t('brand');
+    const logo = Store.asset(Store.safeImage(identity.logoPath || 'assets/icon.svg'));
     const categoriesHtml = categories.slice(0, 4).map(function (category) { return '<a href="' + Store.url('shop.html?category=' + encodeURIComponent(category.id)) + '">' + Store.escape(Store.i18n.localized(category.name)) + '</a>'; }).join('');
-    const phone = String(settings.phone || '+20 100 000 0000');
-    const phoneLink = 'tel:' + phone.replace(/[^+\d]/g, '');
-    host.innerHTML = '<footer class="site-footer"><div class="footer-main page-wrap"><div class="footer-brand"><a class="brand-lockup" href="' + Store.url('index.html') + '"><span class="brand-mark"><b>ج</b><i></i></span><span class="brand-copy"><strong>' + t('brand') + '</strong><small>CAIRO · EGYPT</small></span></a><p>' + t('footerNote') + '</p><a class="footer-contact-link" href="' + phoneLink + '">' + icon('phone', 16) + Store.escape(phone) + '</a></div><div class="footer-column"><h3>' + t('footerExplore') + '</h3><a href="' + Store.url('shop.html') + '">' + t('allProducts') + '</a><a href="' + Store.url('categories.html') + '">' + t('categories') + '</a>' + categoriesHtml + '</div><div class="footer-column"><h3>' + t('footerHelp') + '</h3><a href="' + Store.url('track.html') + '">' + t('trackOrder') + '</a><a href="' + Store.url('orders.html') + '">' + t('orders') + '</a><a href="' + Store.url('help.html') + '">' + t('help') + '</a><a href="' + Store.url('about.html') + '">' + t('about') + '</a></div><div class="footer-signup"><span class="eyebrow">' + t('newsletterTitle') + '</span><p>' + t('newsletterText') + '</p><form id="newsletter-form" class="newsletter-form"><label class="visually-hidden" for="newsletter-email">' + t('emailAddress') + '</label><input id="newsletter-email" name="email" type="email" required placeholder="' + t('emailAddress') + '"><button type="submit" aria-label="' + t('subscribe') + '">' + icon('arrow', 18) + '</button></form></div></div><div class="footer-bottom page-wrap"><span>© ' + new Date().getFullYear() + ' ' + t('brand') + '</span><span>' + t('cairoEgypt') + ' · EGP</span><a href="' + Store.url('admin/login.html') + '">' + t('admin') + '</a></div></footer>';
+    const phone = String(contact.phone || '');
+    const phoneLink = phone ? 'tel:' + phone.replace(/[^+\d]/g, '') : '#';
+    const footerText = Store.i18n.localized(footerCfg.body) || Store.i18n.localized(identity.tagline) || '';
+    const footerNote = Store.i18n.localized(footerCfg.note) || '';
+    host.innerHTML = '<footer class="site-footer"><div class="footer-main page-wrap"><div class="footer-brand"><a class="brand-lockup" href="' + Store.url('index.html') + '"><span class="brand-mark"><img src="' + logo + '" alt="" onerror="this.remove()"><b>ج</b><i></i></span><span class="brand-copy"><strong>' + Store.escape(storeName) + '</strong><small>' + Store.escape(Store.i18n.localized(identity.tagline) || 'CAIRO · EGYPT') + '</small></span></a><p>' + Store.escape(footerText) + '</p>' + (phone ? '<a class="footer-contact-link" href="' + phoneLink + '">' + icon('phone', 16) + Store.escape(phone) + '</a>' : '') + '</div><div class="footer-column"><h3>' + t('footerExplore') + '</h3><a href="' + Store.url('shop.html') + '">' + t('allProducts') + '</a><a href="' + Store.url('categories.html') + '">' + t('categories') + '</a>' + categoriesHtml + '</div><div class="footer-column"><h3>' + t('footerHelp') + '</h3><a href="' + Store.url('track.html') + '">' + t('trackOrder') + '</a><a href="' + Store.url('orders.html') + '">' + t('orders') + '</a><a href="' + Store.url('help.html') + '">' + t('help') + '</a><a href="' + Store.url('about.html') + '">' + t('about') + '</a></div><div class="footer-signup"><span class="eyebrow">' + t('newsletterTitle') + '</span><p>' + t('newsletterText') + '</p><form id="newsletter-form" class="newsletter-form"><label class="visually-hidden" for="newsletter-email">' + t('emailAddress') + '</label><input id="newsletter-email" name="email" type="email" required placeholder="' + t('emailAddress') + '"><button type="submit" aria-label="' + t('subscribe') + '">' + icon('arrow', 18) + '</button></form></div></div><div class="footer-bottom page-wrap"><span>' + Store.escape(footerNote) + '</span><span>EGP</span><a href="' + Store.url('admin/login.html') + '">' + t('admin') + '</a></div></footer>';
   }
   function toast(message, type) {
     let host = document.getElementById('toast-stack');
