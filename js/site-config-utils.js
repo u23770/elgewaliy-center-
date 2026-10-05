@@ -168,14 +168,31 @@
 
   function themeCssVariables(config) {
     const colors = (config && config.theme && config.theme.colors) || DEFAULTS.theme.colors;
+    const primary = normalizeHexColor(colors.primary, DEFAULTS.theme.colors.primary);
+    const secondary = normalizeHexColor(colors.secondary, DEFAULTS.theme.colors.secondary);
+    const accent = normalizeHexColor(colors.accent, DEFAULTS.theme.colors.accent);
+    const background = normalizeHexColor(colors.background, DEFAULTS.theme.colors.background);
+    const sectionBackground = normalizeHexColor(colors.sectionBackground, DEFAULTS.theme.colors.sectionBackground);
+    const cardBackground = normalizeHexColor(colors.cardBackground, DEFAULTS.theme.colors.cardBackground);
+    const border = normalizeHexColor(colors.border, DEFAULTS.theme.colors.border);
     return {
-      '--color-primary': normalizeHexColor(colors.primary, DEFAULTS.theme.colors.primary),
-      '--color-secondary': normalizeHexColor(colors.secondary, DEFAULTS.theme.colors.secondary),
-      '--color-accent': normalizeHexColor(colors.accent, DEFAULTS.theme.colors.accent),
-      '--color-background': normalizeHexColor(colors.background, DEFAULTS.theme.colors.background),
-      '--color-section-background': normalizeHexColor(colors.sectionBackground, DEFAULTS.theme.colors.sectionBackground),
-      '--color-card-background': normalizeHexColor(colors.cardBackground, DEFAULTS.theme.colors.cardBackground),
-      '--color-border': normalizeHexColor(colors.border, DEFAULTS.theme.colors.border)
+      '--color-primary': primary,
+      '--color-secondary': secondary,
+      '--color-accent': accent,
+      '--color-background': background,
+      '--color-section-background': sectionBackground,
+      '--color-card-background': cardBackground,
+      '--color-border': border,
+      '--ink': primary,
+      '--ink-soft': secondary,
+      '--clay': accent,
+      '--clay-dark': accent,
+      '--paper': background,
+      '--paper-deep': sectionBackground,
+      '--surface': cardBackground,
+      '--line': border,
+      '--olive': secondary,
+      '--olive-dark': secondary
     };
   }
   function orderedVisibleSections(sections) {
