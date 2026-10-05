@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { filterProducts, getVisibleVariantOptions, getVariantPrice } from "../lib/storefront";
+import { filterProducts, getVisibleVariantOptions, getVariantPrice } from "../lib/storefront.ts";
 
 test("filters products by category and Arabic/English search", () => {
   const products = [
