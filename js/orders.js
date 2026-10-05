@@ -42,15 +42,37 @@
     document.getElementById('track-form').addEventListener('submit', async function (event) { event.preventDefault(); const form = event.currentTarget; if (!form.reportValidity()) return; const values = new FormData(form); state.orderNumber = values.get('orderNumber'); state.phone = values.get('phone'); state.error = ''; try { state.order = await Store.repo.trackOrder(state.orderNumber, state.phone); if (!state.order) state.error = t('orderNotFound'); } catch (error) { state.order = null; state.error = error.message || t('errorBody'); } Store.renderCurrent(); });
   };
   Pages.about = async function (root) {
-    const settings = await Store.repo.getSettings().catch(function () { return Store.demoData.settings; });
-    const phone = settings.phone || Store.demoData.settings.phone;
-    root.innerHTML = '<div class="page-wrap page-space info-page">' + Store.Products.crumbs([{ label: t('home'), href: Store.url('index.html') }, { label: t('about') }]) + '<section class="about-hero"><div class="about-hero-photo"><img src="' + Store.asset('assets/images/hero-editorial.jpg') + '" alt="' + t('brand') + '"></div><div class="about-hero-copy"><span class="eyebrow">CENTER EL GOWAILY · CAIRO</span><h1>' + t('aboutTitle') + '</h1><p>' + t('aboutBody') + '</p><a class="button button-primary" href="' + Store.url('shop.html') + '">' + t('shopNow') + C().icon('arrow', 16) + '</a></div></section><section class="about-values"><article><b>01</b><h2>' + (Store.i18n.locale === 'ar' ? 'اختيارات مدروسة' : 'Considered picks') + '</h2><p>' + (Store.i18n.locale === 'ar' ? 'نركز على القطع التي تستحق مكانًا في خزانتك.' : 'We focus on pieces that earn their place in your wardrobe.') + '</p></article><article><b>02</b><h2>' + (Store.i18n.locale === 'ar' ? 'راحة كل يوم' : 'Everyday comfort') + '</h2><p>' + (Store.i18n.locale === 'ar' ? 'قصّات سهلة وخامات تواكب تفاصيل يومك.' : 'Easy fits and thoughtful fabrics that move with your day.') + '</p></article><article><b>03</b><h2>' + (Store.i18n.locale === 'ar' ? 'من القاهرة، إليك' : 'From Cairo, to you') + '</h2><p>' + (Store.i18n.locale === 'ar' ? 'وجهة محلية للأناقة العملية وخدمة واضحة.' : 'A local destination for useful style and friendly service.') + '</p></article></section><section class="about-contact"><span class="eyebrow">' + t('contactUs') + '</span><h2>' + t('helpTitle') + '</h2><a href="tel:' + esc(phone.replace(/[^+\d]/g, '')) + '">' + C().icon('phone', 17) + esc(phone) + '</a><a href="' + Store.url('help.html') + '">' + t('help') + C().icon('arrow', 16) + '</a></section></div>';
+    const site = Store.repo.getSiteConfig ? await Store.repo.getSiteConfig() : {};
+    const content = site.content || {};
+    const about = content.about || {};
+    const contact = content.contact || {};
+    const phone = String(contact.phone || '');
+    const address = loc(contact.address || '');
+    const title = loc(about.title) || t('aboutTitle');
+    const body = loc(about.body) || t('aboutBody');
+    const image = Store.asset(Store.safeImage(about.image || 'assets/images/hero-editorial.jpg'));
+    root.innerHTML = '<div class="page-wrap page-space info-page">' +
+      Store.Products.crumbs([{ label: t('home'), href: Store.url('index.html') }, { label: t('about') }]) +
+      '<section class="about-hero"><div class="about-hero-photo"><img src="' + image + '" alt="' + esc(title) + '"></div><div class="about-hero-copy"><span class="eyebrow">' + esc(loc(about.eyebrow) || 'CENTER EL GOWAILY') + '</span><h1>' + esc(title) + '</h1><p>' + esc(body) + '</p><a class="button button-primary" href="' + Store.url('shop.html') + '">' + t('shopNow') + C().icon('arrow', 16) + '</a></div></section>' +
+      '<section class="about-values"><article><b>01</b><h2>' + (Store.i18n.locale === 'ar' ? 'اختيارات مدروسة' : 'Considered picks') + '</h2><p>' + (Store.i18n.locale === 'ar' ? 'نركز على القطع التي تستحق مكانًا في خزانتك.' : 'We focus on pieces that earn their place in your wardrobe.') + '</p></article><article><b>02</b><h2>' + (Store.i18n.locale === 'ar' ? 'راحة كل يوم' : 'Everyday comfort') + '</h2><p>' + (Store.i18n.locale === 'ar' ? 'قصّات سهلة وخامات تواكب تفاصيل يومك.' : 'Easy fits and thoughtful fabrics that move with your day.') + '</p></article><article><b>03</b><h2>' + (Store.i18n.locale === 'ar' ? 'خدمة واضحة' : 'Clear service') + '</h2><p>' + (Store.i18n.locale === 'ar' ? 'تجربة شراء بسيطة ومعلومات واضحة من الطلب حتى التوصيل.' : 'A simple buying experience with clear information from checkout to delivery.') + '</p></article></section>' +
+      '<section class="about-contact"><span class="eyebrow">' + t('contactUs') + '</span><h2>' + (address || t('cairoEgypt')) + '</h2>' +
+      (phone ? '<a href="tel:' + esc(phone.replace(/[^+\d]/g, '')) + '">' + C().icon('phone', 17) + esc(phone) + '</a>' : '') +
+      (contact.email ? '<a href="mailto:' + esc(contact.email) + '">' + esc(contact.email) + '</a>' : '') +
+      '<a href="' + Store.url('help.html') + '">' + t('help') + C().icon('arrow', 16) + '</a></section></div>';
   };
   Pages.help = async function (root) {
-    const settings = await Store.repo.getSettings().catch(function () { return Store.demoData.settings; });
-    const phone = settings.phone || Store.demoData.settings.phone;
+    const site = Store.repo.getSiteConfig ? await Store.repo.getSiteConfig() : {};
+    const content = site.content || {};
+    const contact = content.contact || {};
+    const phone = String(contact.phone || '');
     const faqs = ['faqTrack', 'faqPayment', 'faqDelivery', 'faqSize'];
-    root.innerHTML = '<div class="page-wrap page-space help-page">' + Store.Products.crumbs([{ label: t('home'), href: Store.url('index.html') }, { label: t('help') }]) + '<header class="page-heading"><span class="eyebrow">' + t('help') + '</span><h1>' + t('helpTitle') + '</h1><p>' + t('footerHelp') + '</p></header><div class="help-layout"><div class="faq-list">' + faqs.map(function (key, index) { return '<details class="faq-item" ' + (index === 0 ? 'open' : '') + '><summary>' + t(key) + '<span>+</span></summary><p>' + t(key + 'Answer') + '</p></details>'; }).join('') + '</div><aside class="help-contact-card"><span class="help-contact-icon">' + C().icon('phone', 21) + '</span><h2>' + t('contactUs') + '</h2><p>' + t('promiseExchange') + '</p><a class="button button-primary" href="tel:' + esc(phone.replace(/[^+\d]/g, '')) + '">' + t('contactPhone') + ' · ' + esc(phone) + '</a><a href="' + Store.url('track.html') + '">' + t('trackOrder') + C().icon('arrow', 15) + '</a></aside></div></div>';
+    root.innerHTML = '<div class="page-wrap page-space help-page">' + Store.Products.crumbs([{ label: t('home'), href: Store.url('index.html') }, { label: t('help') }]) +
+      '<header class="page-heading"><span class="eyebrow">' + t('help') + '</span><h1>' + t('helpTitle') + '</h1><p>' + t('footerHelp') + '</p></header><div class="help-layout"><div class="faq-list">' +
+      faqs.map(function (key, index) { return '<details class="faq-item" ' + (index === 0 ? 'open' : '') + '><summary>' + t(key) + '<span>+</span></summary><p>' + t(key + 'Answer') + '</p></details>'; }).join('') +
+      '</div><aside class="help-contact-card"><span class="help-contact-icon">' + C().icon('phone', 21) + '</span><h2>' + t('contactUs') + '</h2><p>' + esc(loc(content.hours) || t('promiseExchange')) + '</p>' +
+      (phone ? '<a class="button button-primary" href="tel:' + esc(phone.replace(/[^+\d]/g, '')) + '">' + t('contactPhone') + ' · ' + esc(phone) + '</a>' : '') +
+      (contact.whatsapp ? '<a href="' + Store.safeExternalUrl(contact.whatsapp) + '" target="_blank" rel="noopener">' + t('contactUs') + ' · WhatsApp</a>' : '') +
+      '<a href="' + Store.url('track.html') + '">' + t('trackOrder') + C().icon('arrow', 15) + '</a></aside></div></div>';
   };
   Store.Orders = { timeline: statusTimeline, orderCard: orderCard };
 })(window.Store);
