@@ -24,5 +24,5 @@ Upgrade the existing admin workspace into a practical clothing-store back office
 - Keep the current standalone /admin/ route family and access-code gate.
 - No points/loyalty system.
 - Do not expose private Supabase service keys.
-- Keep demo mode working.
+- Keep the production configuration and live Supabase mode working.
 - Do not silently overwrite products on import; make duplicate behavior explicit.
