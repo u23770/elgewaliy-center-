@@ -3,6 +3,7 @@
   const tx = function (en, ar) { return Store.i18n.locale === 'ar' ? ar : en; };
   const esc = function (value) { return Store.escape(value); };
   const loc = function (value) { return Store.i18n.localized(value); };
+  const C = function () { return Store.Components; };
   const cfgUtil = function () { return window.StoreSiteConfig; };
   const modal = function (content, title) {
     const host = document.getElementById('admin-modal-root');
