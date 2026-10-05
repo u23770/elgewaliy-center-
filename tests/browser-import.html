@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Admin Import Self Test</title></head>
+<body><pre id="result">running</pre>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="../js/admin-import-utils.js"></script>
+<script>
+(async function () {
+  const out = document.getElementById('result');
+  try {
+    const response = await fetch('./fixtures/sample-products.csv', { cache: 'no-store' });
+    const csv = await response.text();
+    const workbook = XLSX.read(csv, { type: 'string', raw: false });
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '', raw: false });
+    const headers = Object.keys(rows[0] || {});
+    const mapping = StoreAdminImport.inferColumnMapping(headers);
+    const plan = StoreAdminImport.buildImportPlan(rows, mapping, {
+      categories: [
+        { id: 'cat-tops', slug: 'tops', name: { en: 'Tops & shirts', ar: 'تيشيرتات وقمصان' } },
+        { id: 'cat-accessories', slug: 'accessories', name: { en: 'Accessories', ar: 'إكسسوارات' } }
+      ],
+      existingProducts: [],
+      existingSizes: [],
+      existingColors: [],
+      mode: 'add_update'
+    });
+    const checks = [
+      ['SheetJS loaded', Boolean(window.XLSX)],
+      ['Rows parsed', plan.stats.rows === 5],
+      ['Products grouped', plan.stats.products === 2],
+      ['Variants grouped', plan.stats.variants === 4],
+      ['English name mapped', mapping.nameEn === 'Product Name'],
+      ['Arabic name mapped', mapping.nameAr === 'اسم المنتج'],
+      ['Price mapped', mapping.price === 'Price'],
+      ['Colour mapped', mapping.color === 'Color'],
+      ['Size mapped', mapping.size === 'Size'],
+      ['Variant stock mapped', mapping.variantStock === 'Variant Stock'],
+      ['No blocking errors', plan.errors.length === 0]
+    ];
+    const failures = checks.filter(function (item) { return !item[1]; });
+    if (failures.length) throw new Error(failures.map(function (item) { return item[0]; }).join(', '));
+    out.textContent = 'PASS\\n' + checks.map(function (item) { return '✓ ' + item[0]; }).join('\\n') +
+      '\\nProducts: ' + plan.stats.products + '\\nVariants: ' + plan.stats.variants;
+  } catch (error) {
+    out.textContent = 'FAIL\\n' + (error.stack || error.message || error);
+    document.body.dataset.status = 'fail';
+  }
+})();
+</script></body></html>
