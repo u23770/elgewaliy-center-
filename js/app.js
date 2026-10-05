@@ -2,7 +2,7 @@
   const t = function (key, params) { return Store.i18n.t(key, params); };
   const C = function () { return Store.Components; };
   const esc = function (value) { return Store.escape(value); };
-  const adminPages = ['admin-dashboard', 'admin-products', 'admin-categories', 'admin-inventory', 'admin-attributes', 'admin-orders', 'admin-customers', 'admin-promotions', 'admin-settings'];
+  const adminPages = ['admin-dashboard', 'admin-products', 'admin-categories', 'admin-inventory', 'admin-attributes', 'admin-orders', 'admin-customers', 'admin-promotions', 'admin-settings', 'admin-customizer', 'admin-content', 'admin-media', 'admin-sections', 'admin-banners', 'admin-gallery', 'admin-socials', 'admin-zones', 'admin-deliveries', 'admin-drivers', 'admin-reviews'];
   const renderers = {
     home: Store.Pages.home, shop: Store.Pages.shop, search: Store.Pages.search, categories: Store.Pages.categories, product: Store.Pages.product,
     cart: Store.Cart.renderPage, checkout: Store.Pages.checkout, 'order-success': Store.Pages.orderSuccess, login: Store.Pages.login,
@@ -140,8 +140,8 @@
     const form = event.target;
     if (form.id === 'newsletter-form' || form.id === 'newsletter-hero-form') {
       event.preventDefault(); if (!form.reportValidity()) return; const values = new FormData(form); const email = String(values.get('email') || '').trim().toLowerCase();
-      try { const entries = JSON.parse(localStorage.getItem('ceg-static-newsletter') || '[]'); if (!entries.includes(email)) entries.push(email); localStorage.setItem('ceg-static-newsletter', JSON.stringify(entries)); } catch (_) {}
-      form.reset(); C().toast(t('subscriptionThanks'), 'success');
+      try { if (Store.repo.subscribeNewsletter) await Store.repo.subscribeNewsletter(email); else throw new Error('Newsletter service unavailable.'); form.reset(); C().toast(t('subscriptionThanks'), 'success'); }
+      catch (error) { C().toast(error.message || t('errorBody'), 'error'); }
     }
   });
   document.addEventListener('keydown', function (event) {
