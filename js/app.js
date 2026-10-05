@@ -107,7 +107,6 @@
     if (action === 'apply-promo') { await Store.Checkout.applyPromotion(); return; }
     if (action === 'remove-promo') { Store.Checkout.removePromotion(); return; }
     if (action === 'sign-out') { if (document.body.dataset.page && document.body.dataset.page.startsWith('admin-')) { if (Store.AdminGate) Store.AdminGate.revokeAccess(); window.location.replace(Store.url('admin/login.html')); } else { await Store.Auth.logout(); window.location.href = Store.url('index.html'); } return; }
-    if (action === 'fill-demo') { return; }
     if (action === 'admin-menu-open') { setAdminMenu(true); return; }
     if (action === 'admin-menu-close') { setAdminMenu(false); return; }
     if (action === 'add-product' || action === 'edit-product') { const categories = await Store.repo.listCategories(true); const sizes = await Store.repo.listSizes(); const colors = await Store.repo.listColors(); let product = null; if (action === 'edit-product') product = await Store.repo.getProduct(actionNode.dataset.id, true); Store.Admin.openProductEditor(product, categories, sizes, colors); return; }
