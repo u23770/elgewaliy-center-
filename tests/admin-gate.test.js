@@ -1,34 +1,37 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {
-  ACCESS_KEY,
-  CODE_KEY,
-  hasAccess,
-  currentCode,
-  grantAccess,
-  revokeAccess
-} = require('../admin/gate.js');
+const { SESSION_KEY, hasAccess, currentCode, revokeAccess } = require('../admin/gate.js');
 
-test('stores the entered admin code only in the session access store', () => {
+function makeStorage() {
   const values = new Map();
-  const storage = {
-    getItem: (key) => values.get(key) ?? null,
-    setItem: (key, value) => values.set(key, value),
-    removeItem: (key) => values.delete(key)
+  return {
+    storage: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+      removeItem: (key) => values.delete(key)
+    },
+    values
   };
+}
 
-  assert.equal(hasAccess(storage), false);
-  grantAccess('GOWAILY-ADMIN-2026', storage);
-  assert.equal(values.get(ACCESS_KEY), 'granted');
-  assert.equal(values.get(CODE_KEY), 'GOWAILY-ADMIN-2026');
-  assert.equal(currentCode(storage), 'GOWAILY-ADMIN-2026');
+test('recognizes an active server-issued session token in session storage', () => {
+  const { storage, values } = makeStorage();
+  const token = 'a'.repeat(64);
+  values.set(SESSION_KEY, token);
   assert.equal(hasAccess(storage), true);
-  revokeAccess(storage);
-  assert.equal(hasAccess(storage), false);
-  assert.equal(currentCode(storage), '');
+  assert.equal(currentCode(storage), token);
 });
 
-test('does not expose an admin secret as a public gate constant', () => {
+test('does not expose the raw administrator access code as a gate constant', () => {
   const gate = require('../admin/gate.js');
   assert.equal(Object.prototype.hasOwnProperty.call(gate, 'ADMIN_CODE'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(gate, 'CODE_KEY'), false);
+});
+
+test('revokes the local server-issued session token', async () => {
+  const { storage, values } = makeStorage();
+  values.set(SESSION_KEY, 'b'.repeat(64));
+  await revokeAccess(storage);
+  assert.equal(hasAccess(storage), false);
+  assert.equal(values.has(SESSION_KEY), false);
 });
