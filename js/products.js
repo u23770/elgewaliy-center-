@@ -9,19 +9,95 @@
     const image = Store.asset(Store.safeImage(category.image));
     return '<a class="collection-card collection-card-' + (index + 1) + '" href="' + Store.url('shop.html?category=' + encodeURIComponent(category.id)) + '"><img class="collection-photo" src="' + image + '" alt="' + esc(loc(category.name)) + '" loading="lazy" data-fallback="' + Store.asset('assets/images/fallback.svg') + '"><span class="collection-overlay"></span><span class="collection-content"><small>' + String(index + 1).padStart(2, '0') + ' · ' + t('category') + '</small><strong>' + esc(loc(category.name)) + '</strong><span>' + esc(loc(category.description)) + '</span><i>' + C().icon('arrow', 17) + '</i></span></a>';
   }
+  function homeSiteDefaults() {
+    return {
+      identity: {
+        storeName: { en: 'Center El Gowaily', ar: 'سنتر الجويلي' },
+        tagline: { en: 'Everyday style, thoughtfully chosen', ar: 'أناقة يومية باختيارات مدروسة' },
+        announcement: { en: 'Cairo style, delivered with care', ar: 'أناقة من القاهرة، وتوصيل باهتمام' },
+        logoPath: ''
+      },
+      homepage: {
+        hero: {
+          eyebrow: { en: 'CENTER EL GOWAILY · CAIRO', ar: 'سنتر الجويلي · القاهرة' },
+          title: { en: 'Everyday pieces.\\nMade to stay.', ar: 'قطع يومية.\\nتفضل معاك.' },
+          body: { en: 'A focused wardrobe of easy layers, useful fits and pieces made for repeat wear.', ar: 'تشكيلة مركزة من القطع العملية والقصّات المريحة للاستخدام اليومي.' },
+          image: 'assets/images/hero-editorial.jpg',
+          primaryCta: { en: 'Shop the collection', ar: 'تسوق المجموعة' },
+          secondaryCta: { en: 'Our story', ar: 'حكايتنا' }
+        },
+        promise: [
+          { icon: 'truck', title: { en: 'Fast delivery', ar: 'توصيل سريع' } },
+          { icon: 'shield', title: { en: 'Trusted quality', ar: 'جودة تثق بها' } },
+          { icon: 'heart', title: { en: 'Easy exchanges', ar: 'استبدال سهل' } }
+        ],
+        story: {
+          eyebrow: { en: 'OUR STORY', ar: 'حكايتنا' },
+          title: { en: 'Clothes that work with your day.', ar: 'ملابس تمشي مع يومك.' },
+          body: { en: 'Center El Gowaily brings together practical pieces, considered details and an easy shopping experience.', ar: 'سنتر الجويلي يجمع بين القطع العملية والتفاصيل المدروسة وتجربة شراء سهلة.' },
+          image: 'assets/images/look-women.jpg',
+          cta: { en: 'Our story', ar: 'حكايتنا' }
+        },
+        sectionTitles: {
+          categories: { en: 'Shop by category', ar: 'تسوق حسب القسم' },
+          featured: { en: 'Featured pieces', ar: 'قطع مختارة' },
+          new: { en: 'New arrivals', ar: 'وصل حديثًا' },
+          banners: { en: 'Store updates', ar: 'أحدث عروض المتجر' },
+          gallery: { en: 'From Center El Gowaily', ar: 'من سنتر الجويلي' }
+        },
+        sections: {
+          hero: { visible: true, order: 1 }, promise: { visible: true, order: 2 }, categories: { visible: true, order: 3 },
+          featured: { visible: true, order: 4 }, story: { visible: true, order: 5 }, new: { visible: true, order: 6 },
+          banners: { visible: true, order: 7 }, gallery: { visible: true, order: 8 }, newsletter: { visible: true, order: 9 }
+        }
+      }
+    };
+  }
+  function homeSite(raw) {
+    const base = homeSiteDefaults();
+    if (window.StoreSiteConfig) return window.StoreSiteConfig.normalizeSiteConfig(raw || {});
+    function merge(target, source) {
+      Object.keys(source || {}).forEach(function(key) {
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+          if (!target[key] || typeof target[key] !== 'object' || Array.isArray(target[key])) target[key] = {};
+          merge(target[key], source[key]);
+        } else if (source[key] !== undefined) target[key] = source[key];
+      });
+      return target;
+    }
+    return merge(base, raw || {});
+  }
+
   Pages.home = async function (root) {
-    const [products, categories] = await Promise.all([Store.repo.listProducts(), Store.repo.listCategories()]);
+    const results = await Promise.all([
+      Store.repo.listProducts(),
+      Store.repo.listCategories(),
+      Store.repo.getSiteConfig ? Store.repo.getSiteConfig() : Promise.resolve({})
+    ]);
+    const products = results[0] || [];
+    const categories = results[1] || [];
+    const site = homeSite(results[2] || {});
+    const banners = Store.repo.listBanners ? await Store.repo.listBanners(false) : [];
+    const gallery = Store.repo.listGallery ? await Store.repo.listGallery(false) : [];
     const featured = products.filter(function (product) { return product.featured; }).slice(0, 4);
     const newItems = products.slice().sort(function (a, b) { return String(b.createdAt || '').localeCompare(String(a.createdAt || '')); }).slice(0, 4);
-    root.innerHTML = '<section class="home-hero"><div class="hero-image" role="img" aria-label="' + esc(t('brand')) + '"></div><div class="hero-grain"></div><div class="hero-copy page-wrap"><span class="eyebrow hero-eyebrow"><i></i>' + t('heroEyebrow') + '</span><h1>' + esc(t('heroTitle')).replace(/\n/g, '<br>') + '</h1><p>' + t('heroBody') + '</p><div class="hero-actions"><a class="button button-primary" href="' + Store.url('shop.html') + '">' + t('heroCTA') + C().icon('arrow', 16) + '</a><a class="text-link hero-secondary" href="' + Store.url('about.html') + '">' + t('heroSecondary') + '</a></div><div class="hero-footnote"><span>01</span><i></i><span>09</span><span>COLLECTION · 2026</span></div></div><div class="hero-side-note">CENTER EL GOWAILY&nbsp; / &nbsp;CAIRO</div></section>' +
-      '<section class="promise-strip page-wrap"><div><span class="promise-icon">' + C().icon('truck', 20) + '</span><span>' + t('promiseDelivery') + '</span></div><div><span class="promise-icon">' + C().icon('shield', 20) + '</span><span>' + t('promiseQuality') + '</span></div><div><span class="promise-icon">' + C().icon('heart', 19) + '</span><span>' + t('promiseExchange') + '</span></div></section>' +
-      '<section class="home-section categories-section page-wrap"><div class="section-heading"><div><span class="eyebrow">' + t('categoryEyebrow') + '</span><h2>' + t('categoryTitle') + '</h2></div><a class="section-link" href="' + Store.url('categories.html') + '">' + t('viewAll') + C().icon('arrow', 17) + '</a></div>' +
-      (categories.length ? '<div class="collection-grid">' + categories.slice(0, 4).map(collectionCard).join('') + '</div>' : C().empty('box', t('emptyTitle'), t('categoriesEmpty'))) + '</section>' +
-      '<section class="home-section featured-section"><div class="page-wrap"><div class="section-heading"><div><span class="eyebrow">' + t('featuredEyebrow') + '</span><h2>' + t('featuredTitle') + '</h2></div><a class="section-link" href="' + Store.url('shop.html?featured=1') + '">' + t('viewAll') + C().icon('arrow', 17) + '</a></div>' +
-      (featured.length ? '<div class="product-grid">' + featured.map(C().productCard).join('') + '</div>' : C().empty('box', t('noProducts'), t('noProductsBody'), '<a class="button button-outline" href="' + Store.url('admin/login.html') + '">' + t('goAdmin') + '</a>')) + '</div></section>' +
-      '<section class="story-panel page-wrap"><div class="story-photo"><img loading="lazy" src="' + Store.asset('assets/images/look-women.jpg') + '" alt="' + esc(t('brand')) + '"></div><div class="story-copy"><span class="eyebrow">' + t('storyEyebrow') + '</span><h2>' + t('storyTitle') + '</h2><p>' + t('storyBody') + '</p><a class="button button-dark" href="' + Store.url('about.html') + '">' + t('storyCTA') + C().icon('arrow', 16) + '</a><span class="story-serial">EG / 09 — CAIRO</span></div><span class="story-deco">ج</span></section>' +
-      '<section class="home-section new-section page-wrap"><div class="section-heading"><div><span class="eyebrow">' + t('newEyebrow') + '</span><h2>' + t('newTitle') + '</h2></div><a class="section-link" href="' + Store.url('shop.html?sort=newest') + '">' + t('viewAll') + C().icon('arrow', 17) + '</a></div>' + (newItems.length ? '<div class="product-grid">' + newItems.map(C().productCard).join('') + '</div>' : C().empty('box', t('noProducts'), t('noProductsBody'))) + '</section>' +
-      '<section class="newsletter-band"><div class="page-wrap newsletter-band-inner"><div><span class="eyebrow">' + t('newsletterTitle') + '</span><h2>' + t('newsletterText') + '</h2></div><form id="newsletter-hero-form" class="newsletter-form"><label class="visually-hidden" for="newsletter-hero-email">' + t('emailAddress') + '</label><input id="newsletter-hero-email" name="email" type="email" required placeholder="' + t('emailAddress') + '"><button type="submit">' + t('subscribe') + C().icon('arrow', 17) + '</button></form></div></section>';
+    const sections = site.homepage.sections || {};
+    const order = window.StoreSiteConfig
+      ? window.StoreSiteConfig.orderedVisibleSections(sections)
+      : Object.keys(sections).filter(function (key) { return sections[key] && sections[key].visible !== false; }).sort(function (a,b) { return Number(sections[a].order || 0) - Number(sections[b].order || 0); });
+    const sectionTitles = site.homepage.sectionTitles || {};
+    const title = function (key, fallback) { return sectionTitles[key] ? loc(sectionTitles[key]) : fallback; };
+    const parts = {};
+    parts.hero = '<section class="home-hero"><div class="hero-image" role="img" aria-label="' + esc(loc(site.homepage.hero.title)) + '" style="background-image:url(\'' + Store.asset(Store.safeImage(site.homepage.hero.image)) + '\')"></div><div class="hero-grain"></div><div class="hero-copy page-wrap"><span class="eyebrow hero-eyebrow"><i></i>' + esc(loc(site.homepage.hero.eyebrow)) + '</span><h1>' + esc(loc(site.homepage.hero.title)).replace(/\\n/g, '<br>') + '</h1><p>' + esc(loc(site.homepage.hero.body)) + '</p><div class="hero-actions"><a class="button button-primary" href="' + Store.url('shop.html') + '">' + esc(loc(site.homepage.hero.primaryCta)) + C().icon('arrow', 16) + '</a><a class="text-link hero-secondary" href="' + Store.url('about.html') + '">' + esc(loc(site.homepage.hero.secondaryCta)) + '</a></div><div class="hero-footnote"><span>01</span><i></i><span>09</span><span>COLLECTION</span></div></div><div class="hero-side-note">' + esc(loc(site.identity.storeName)) + '</div></section>';
+    parts.promise = '<section class="promise-strip page-wrap">' + site.homepage.promise.map(function (item) { return '<div><span class="promise-icon">' + C().icon(item.icon || 'shield', 20) + '</span><span>' + esc(loc(item.title)) + '</span></div>'; }).join('') + '</section>';
+    parts.categories = '<section class="home-section categories-section page-wrap"><div class="section-heading"><div><span class="eyebrow">' + t('categoryEyebrow') + '</span><h2>' + esc(title('categories', t('categoryTitle'))) + '</h2></div><a class="section-link" href="' + Store.url('categories.html') + '">' + t('viewAll') + C().icon('arrow', 17) + '</a></div>' + (categories.length ? '<div class="collection-grid">' + categories.slice(0, 4).map(collectionCard).join('') + '</div>' : C().empty('box', t('emptyTitle'), t('categoriesEmpty'))) + '</section>';
+    parts.featured = '<section class="home-section featured-section"><div class="page-wrap"><div class="section-heading"><div><span class="eyebrow">' + t('featuredEyebrow') + '</span><h2>' + esc(title('featured', t('featuredTitle'))) + '</h2></div><a class="section-link" href="' + Store.url('shop.html?featured=1') + '">' + t('viewAll') + C().icon('arrow', 17) + '</a></div>' + (featured.length ? '<div class="product-grid">' + featured.map(C().productCard).join('') + '</div>' : C().empty('box', t('noProducts'), t('noProductsBody'))) + '</div></section>';
+    parts.story = '<section class="story-panel page-wrap"><div class="story-photo"><img loading="lazy" src="' + Store.asset(Store.safeImage(site.homepage.story.image)) + '" alt="' + esc(loc(site.homepage.story.title)) + '"></div><div class="story-copy"><span class="eyebrow">' + esc(loc(site.homepage.story.eyebrow)) + '</span><h2>' + esc(loc(site.homepage.story.title)) + '</h2><p>' + esc(loc(site.homepage.story.body)) + '</p><a class="button button-dark" href="' + Store.url('about.html') + '">' + esc(loc(site.homepage.story.cta)) + C().icon('arrow', 16) + '</a><span class="story-serial">CENTER EL GOWAILY</span></div></section>';
+    parts.new = '<section class="home-section new-section page-wrap"><div class="section-heading"><div><span class="eyebrow">' + t('newEyebrow') + '</span><h2>' + esc(title('new', t('newTitle'))) + '</h2></div><a class="section-link" href="' + Store.url('shop.html?sort=newest') + '">' + t('viewAll') + C().icon('arrow', 17) + '</a></div>' + (newItems.length ? '<div class="product-grid">' + newItems.map(C().productCard).join('') + '</div>' : C().empty('box', t('noProducts'), t('noProductsBody'))) + '</section>';
+    parts.banners = banners && banners.length ? '<section class="home-section page-wrap"><div class="section-heading"><div><span class="eyebrow">' + t('banners') + '</span><h2>' + esc(title('banners', t('banners'))) + '</h2></div></div><div class="home-banner-grid">' + banners.slice(0, 4).map(function (b) { return '<a class="home-banner-card" href="' + Store.safeExternalUrl(b.link || Store.url('shop.html')) + '"><img src="' + Store.asset(Store.safeImage(b.image)) + '" alt="' + esc(loc(b.title)) + '" loading="lazy"><div><strong>' + esc(loc(b.title)) + '</strong><span>' + esc(loc(b.text)) + '</span></div></a>'; }).join('') + '</div></section>' : '';
+    parts.gallery = gallery && gallery.length ? '<section class="home-section page-wrap"><div class="section-heading"><div><span class="eyebrow">' + t('gallery') + '</span><h2>' + esc(title('gallery', t('gallery'))) + '</h2></div></div><div class="home-gallery-grid">' + gallery.slice(0, 6).map(function (g) { return '<a href="' + Store.safeExternalUrl(g.link || Store.url('shop.html')) + '"><img src="' + Store.asset(Store.safeImage(g.image)) + '" alt="' + esc(loc(g.title)) + '" loading="lazy"></a>'; }).join('') + '</div></section>' : '';
+    parts.newsletter = '<section class="newsletter-band"><div class="page-wrap newsletter-band-inner"><div><span class="eyebrow">' + t('newsletterTitle') + '</span><h2>' + t('newsletterText') + '</h2></div><form id="newsletter-hero-form" class="newsletter-form"><label class="visually-hidden" for="newsletter-hero-email">' + t('emailAddress') + '</label><input id="newsletter-hero-email" name="email" type="email" required placeholder="' + t('emailAddress') + '"><button type="submit">' + t('subscribe') + C().icon('arrow', 17) + '</button></form></div></section>';
+    root.innerHTML = order.map(function (name) { return sections[name] && sections[name].visible !== false ? (parts[name] || '') : ''; }).join('');
   };
   Pages.categories = async function (root) {
     const categories = await Store.repo.listCategories();
