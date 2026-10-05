@@ -1,21 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  ADMIN_CODE,
   ACCESS_KEY,
-  isValidCode,
+  CODE_KEY,
   hasAccess,
+  currentCode,
   grantAccess,
   revokeAccess
 } = require('../admin/gate.js');
 
-test('accepts the configured admin access code and rejects other codes', async () => {
-  assert.equal(await isValidCode(ADMIN_CODE), true);
-  assert.equal(await isValidCode('wrong-code'), false);
-  assert.equal(await isValidCode(''), false);
-});
-
-test('stores admin access separately in session storage', () => {
+test('stores the entered admin code only in the session access store', () => {
   const values = new Map();
   const storage = {
     getItem: (key) => values.get(key) ?? null,
@@ -24,9 +18,17 @@ test('stores admin access separately in session storage', () => {
   };
 
   assert.equal(hasAccess(storage), false);
-  grantAccess(storage);
+  grantAccess('GOWAILY-ADMIN-2026', storage);
   assert.equal(values.get(ACCESS_KEY), 'granted');
+  assert.equal(values.get(CODE_KEY), 'GOWAILY-ADMIN-2026');
+  assert.equal(currentCode(storage), 'GOWAILY-ADMIN-2026');
   assert.equal(hasAccess(storage), true);
   revokeAccess(storage);
   assert.equal(hasAccess(storage), false);
+  assert.equal(currentCode(storage), '');
+});
+
+test('does not expose an admin secret as a public gate constant', () => {
+  const gate = require('../admin/gate.js');
+  assert.equal(Object.prototype.hasOwnProperty.call(gate, 'ADMIN_CODE'), false);
 });
