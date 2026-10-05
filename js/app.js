@@ -136,12 +136,18 @@
       Store.repo.updateOrderStatus(node.dataset.orderId, node.value).then(function () { C().toast(t('orderUpdated')); }).catch(function (error) { C().toast(error.message || t('errorBody'), 'error'); });
     }
   });
-  document.addEventListener('submit', function (event) {
+  document.addEventListener('submit', async function (event) {
     const form = event.target;
     if (form.id === 'newsletter-form' || form.id === 'newsletter-hero-form') {
       event.preventDefault(); if (!form.reportValidity()) return; const values = new FormData(form); const email = String(values.get('email') || '').trim().toLowerCase();
-      try { const entries = JSON.parse(localStorage.getItem('ceg-static-newsletter') || '[]'); if (!entries.includes(email)) entries.push(email); localStorage.setItem('ceg-static-newsletter', JSON.stringify(entries)); } catch (_) {}
-      form.reset(); C().toast(t('subscriptionThanks'), 'success');
+      try {
+        if (!Store.useSupabase || !Store.supabase || !Store.supabase.ready) throw new Error('Store newsletter service is unavailable.');
+        await Store.supabase.rpc('subscribe_newsletter', { p_email: email });
+        form.reset();
+        C().toast(t('subscriptionThanks'), 'success');
+      } catch (error) {
+        C().toast(error && error.message ? error.message : t('errorBody'), 'error');
+      }
     }
   });
   document.addEventListener('keydown', function (event) {
