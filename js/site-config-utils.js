@@ -8,7 +8,7 @@
     identity: {
       storeName: { en: 'Center El Gowaily', ar: 'سنتر الجويلي' },
       tagline: { en: 'Everyday style, thoughtfully chosen', ar: 'أناقة يومية باختيارات مدروسة' },
-      announcement: { en: 'Cairo style, delivered with care', ar: 'أناقة من القاهرة، وتوصيل باهتمام' }
+      announcement: { en: 'Style delivered with care', ar: 'أناقة وتوصيل باهتمام' }
     },
     theme: {
       colors: {
@@ -25,7 +25,7 @@
     },
     homepage: {
       hero: {
-        eyebrow: { en: 'CENTER EL GOWAILY · CAIRO', ar: 'سنتر الجويلي · القاهرة' },
+        eyebrow: { en: 'CENTER EL GOWAILY', ar: 'سنتر الجويلي' },
         title: { en: 'Everyday pieces.\nMade to stay.', ar: 'قطع يومية.\nتفضل معاك.' },
         body: { en: 'A focused wardrobe of easy layers, useful fits and pieces made for repeat wear.', ar: 'تشكيلة مركزة من القطع العملية والقصّات المريحة للاستخدام اليومي.' },
         image: 'assets/images/hero-editorial.jpg',
@@ -71,7 +71,7 @@
         image: 'assets/images/hero-editorial.jpg'
       },
       contact: {
-        address: { en: 'Cairo, Egypt', ar: 'القاهرة، مصر' },
+        address: { en: '', ar: '' },
         phone: '',
         email: '',
         whatsapp: '',
