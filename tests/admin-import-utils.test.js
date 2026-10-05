@@ -116,3 +116,11 @@ test('supports comma/pipe/line-separated lists and boolean parsing', () => {
   assert.equal(parseBoolean('لا'), false);
   assert.equal(parseBoolean('something'), null);
 });
+
+test('generates a unique safe slug for Arabic-only product names', () => {
+  const rows = [{ 'اسم المنتج': 'تيشيرت شباب', 'السعر': '400' }];
+  const mapping = { nameAr: 'اسم المنتج', price: 'السعر' };
+  const result = buildImportPlan(rows, mapping, { categories: [], existingProducts: [], mode: 'add_update' });
+  assert.equal(result.errors.length, 0);
+  assert.match(result.items[0].slug, /^product-[0-9a-f]+$/);
+});
