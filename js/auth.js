@@ -12,24 +12,47 @@
     return rows && rows[0] ? rows[0] : null;
   }
   async function login(email, password, adminOnly) {
-    if (!Store.useSupabase) throw new Error('Store account service is unavailable.');
-    if (adminOnly) throw new Error(t('adminError'));
     const cleanEmail = String(email || '').trim().toLowerCase();
+    if (!Store.useSupabase) throw new Error('The live store backend is not configured.');
     const response = await Store.supabase.auth.signIn(cleanEmail, password);
-    const user = { id: response.user.id, email: response.user.email || cleanEmail, fullName: response.user.user_metadata && response.user.user_metadata.full_name || '', phone: response.user.user_metadata && response.user.user_metadata.phone || '', role: 'customer' };
-    saveSession({access_token:response.access_token,refresh_token:response.refresh_token,expires_at:response.expires_at || Math.floor(Date.now()/1000)+Number(response.expires_in||3600),user:user});
+    let profile = null;
+    try { profile = await profileFor(response.user.id, response.access_token); } catch (_) {}
+    const user = {
+      id: response.user.id,
+      email: response.user.email || cleanEmail,
+      fullName: profile && profile.full_name || response.user.user_metadata && response.user.user_metadata.full_name || '',
+      phone: profile && profile.phone || '',
+      role: profile && profile.role || 'customer'
+    };
+    if (adminOnly) throw new Error(t('adminError'));
+    saveSession({
+      access_token: response.access_token,
+      refresh_token: response.refresh_token,
+      expires_at: response.expires_at || Math.floor(Date.now() / 1000) + Number(response.expires_in || 3600),
+      user: user
+    });
     return user;
   }
   async function register(data) {
-    if (!Store.useSupabase) throw new Error('Store account service is unavailable.');
-    const email=String(data.email||'').trim().toLowerCase();
-    const name=String(data.fullName||'').trim();
-    const redirectTo=new URL(Store.url('login.html?confirmed=1'),window.location.href).href;
-    const response=await Store.supabase.auth.signUp(email,data.password,{full_name:name,phone:data.phone||''},redirectTo);
-    if(!response.session) return {pendingVerification:true};
-    const user={id:response.user.id,email:response.user.email||email,fullName:name,phone:data.phone||'',role:'customer'};
-    saveSession({access_token:response.session.access_token,refresh_token:response.session.refresh_token,expires_at:response.session.expires_at,user:user});
-    return {user:user};
+    const email = String(data.email || '').trim().toLowerCase();
+    const name = String(data.fullName || '').trim();
+    if (!Store.useSupabase) throw new Error('The live store backend is not configured.');
+    const redirectTo = new URL(Store.url('login.html?confirmed=1'), window.location.href).href;
+    const response = await Store.supabase.auth.signUp(
+      email,
+      data.password,
+      { full_name: name, phone: data.phone || '' },
+      redirectTo
+    );
+    if (!response.session) return { pendingVerification: true };
+    const user = { id: response.user.id, email: response.user.email || email, fullName: name, phone: data.phone || '', role: 'customer' };
+    saveSession({
+      access_token: response.session.access_token,
+      refresh_token: response.session.refresh_token,
+      expires_at: response.session.expires_at,
+      user: user
+    });
+    return { user: user };
   }
   async function logout() {
     if (Store.useSupabase && Store.storage.session()) { try { await Store.supabase.auth.signOut(); } catch (_) {} }
@@ -118,7 +141,7 @@
       document.getElementById('new-password-form').addEventListener('submit', async function (event) { event.preventDefault(); const form = event.currentTarget; if (!form.reportValidity()) return; const values = new FormData(form); const box = document.getElementById('reset-message'); if (values.get('password') !== values.get('confirmPassword')) { box.textContent = t('passwordMismatch'); box.hidden = false; return; } try { await updatePassword(values.get('password')); C().toast(t('passwordUpdated')); window.location.href = Store.url('login.html'); } catch (error) { box.textContent = error.message || t('recoveryExpired'); box.hidden = false; } });
       return;
     }
-    root.innerHTML = '<div class="page-wrap auth-page auth-page-simple"><div class="auth-panel"><div class="auth-form-area"><a class="auth-back" href="' + Store.url('login.html') + '">← ' + t('signIn') + '</a><span class="eyebrow">' + t('account') + '</span><h1>' + t('resetTitle') + '</h1><p class="auth-intro">' + t('resetBody') + '</p><form id="reset-form" class="auth-form"><label class="field"><span>' + t('email') + '</span><input name="email" type="email" required autocomplete="email"></label><div id="reset-message" class="form-success" hidden></div><button class="button button-primary button-full" type="submit">' + t('sendReset') + C().icon('arrow', 16) + '</button></form>' + (!Store.useSupabase ? '<p class="demo-notice-inline">' + t('demoOnlyAuth') + '</p>' : '') + '</div>' + authVisual() + '</div></div>';
+    root.innerHTML = '<div class="page-wrap auth-page auth-page-simple"><div class="auth-panel"><div class="auth-form-area"><a class="auth-back" href="' + Store.url('login.html') + '">← ' + t('signIn') + '</a><span class="eyebrow">' + t('account') + '</span><h1>' + t('resetTitle') + '</h1><p class="auth-intro">' + t('resetBody') + '</p><form id="reset-form" class="auth-form"><label class="field"><span>' + t('email') + '</span><input name="email" type="email" required autocomplete="email"></label><div id="reset-message" class="form-success" hidden></div><button class="button button-primary button-full" type="submit">' + t('sendReset') + C().icon('arrow', 16) + '</button></form>' + '</div>' + authVisual() + '</div></div>';
     document.getElementById('reset-form').addEventListener('submit', async function (event) { event.preventDefault(); const form = event.currentTarget; if (!form.reportValidity()) return; const email = new FormData(form).get('email'); const box = document.getElementById('reset-message'); try { if (!Store.useSupabase) { box.className = 'form-error'; box.textContent = t('demoOnlyAuth'); box.hidden = false; return; } await resetPassword(email); box.textContent = t('resetSent'); box.hidden = false; } catch (error) { C().toast(error.message || t('errorBody'), 'error'); } });
   };
   Pages.profile = async function (root) {
