@@ -136,15 +136,107 @@
     return '<div class="admin-toolbar"><span>' + customers.length + ' · ' + t('customers') + '</span></div><section class="admin-panel admin-table-panel">' + (customers.length ? '<div class="admin-table-scroll"><table class="admin-table"><thead><tr><th>' + t('customer') + '</th><th>' + t('customerPhone') + '</th><th>' + t('customerSince') + '</th><th>' + t('adminOrders') + '</th><th>' + t('revenue') + '</th></tr></thead><tbody>' + customersHtml + '</tbody></table></div>' : C().empty('user', t('noCustomers'), t('noCustomers'))) + '</section>';
   }
   function dateField(value) { if (!value) return ''; const d = new Date(value); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
-  function openPromotionEditor(promo) {
-    const item = promo || { id: '', code: '', title: { en: '', ar: '' }, type: 'percentage', value: '', active: true, startsAt: '', endsAt: '' };
-    const content = '<form id="promotion-form" class="admin-editor-form"><input type="hidden" name="id" value="' + esc(item.id) + '"><div class="admin-form-grid"><label class="field"><span>' + t('promotionCode') + '</span><input name="code" required value="' + esc(item.code) + '"></label><label class="field"><span>' + t('discountType') + '</span><select name="type"><option value="percentage" ' + (item.type === 'percentage' ? 'selected' : '') + '>' + t('percentage') + '</option><option value="fixed" ' + (item.type === 'fixed' ? 'selected' : '') + '>' + t('fixedAmount') + '</option></select></label><label class="field"><span>' + t('promotionTitleEn') + '</span><input name="titleEn" required value="' + esc(item.title.en) + '"></label><label class="field"><span>' + t('promotionTitleAr') + '</span><input name="titleAr" required value="' + esc(item.title.ar) + '"></label><label class="field"><span>' + t('discountValue') + '</span><input name="value" type="number" min="1" step="1" required value="' + esc(item.value) + '"></label><label class="field"><span>' + t('startsAt') + '</span><input name="startsAt" type="datetime-local" value="' + dateField(item.startsAt) + '"></label><label class="field"><span>' + t('endsAt') + '</span><input name="endsAt" type="datetime-local" value="' + dateField(item.endsAt) + '"></label><label class="check-row"><input name="active" type="checkbox" ' + (item.active ? 'checked' : '') + '><span>' + t('promotionActive') + '</span></label></div><div class="modal-actions"><button type="button" class="button button-outline" data-action="modal-close">' + t('cancel') + '</button><button class="button button-primary" type="submit">' + t('save') + '</button></div></form>';
-    modalHost(C().modal(t('promotions'), content));
-    document.getElementById('promotion-form').addEventListener('submit', async function (event) { event.preventDefault(); const form = event.currentTarget; if (!form.reportValidity()) return; const values = new FormData(form); try { await Store.repo.savePromotion({ id: values.get('id') || undefined, code: values.get('code'), title: { en: values.get('titleEn'), ar: values.get('titleAr') }, type: values.get('type'), value: values.get('value'), active: values.has('active'), startsAt: values.get('startsAt') ? new Date(values.get('startsAt')).toISOString() : '', endsAt: values.get('endsAt') ? new Date(values.get('endsAt')).toISOString() : '' }); C().toast(t('promotionSaved')); closeModal(); Store.renderCurrent(); } catch (error) { C().toast(error.message || t('errorBody'), 'error'); } });
+  function promotionTargetOptions(scope, item, products, categories) {
+    const selected = (item.targetIds || []).map(String);
+    if (scope === 'category') {
+      return categories.map(function (category) {
+        return '<label class="option-check"><input type="checkbox" name="promotionTargetIds" value="' + esc(category.id) + '" ' + (selected.indexOf(String(category.id)) >= 0 ? 'checked' : '') + '><span>' + esc(loc(category.name)) + '</span></label>';
+      }).join('');
+    }
+    if (scope === 'product') {
+      return products.map(function (product) {
+        return '<label class="option-check"><input type="checkbox" name="promotionTargetIds" value="' + esc(product.id) + '" ' + (selected.indexOf(String(product.id)) >= 0 ? 'checked' : '') + '><span>' + esc(loc(product.name)) + '</span></label>';
+      }).join('');
+    }
+    return '';
   }
+
+  function openPromotionEditor(promo, products, categories) {
+    const item = promo || { id: '', code: '', title: { en: '', ar: '' }, type: 'percentage', value: '', scope: 'global', targetIds: [], minOrder: 0, maxDiscount: '', usageLimit: '', usedCount: 0, priority: 0, active: true, startsAt: '', endsAt: '' };
+    products = products || []; categories = categories || [];
+    const currentScope = item.scope || 'global';
+    const targetBlock = '<div id="promotion-target-block" class="' + (currentScope === 'global' ? 'hidden' : '') + '"><label class="field field-wide"><span>' + t('promotionTargets') + '</span><div id="promotion-target-list" class="option-check-list">' + promotionTargetOptions(currentScope, item, products, categories) + '</div><small class="form-hint">' + t('noTargetWarning') + '</small></label></div>';
+    const content = '<form id="promotion-form" class="admin-editor-form"><input type="hidden" name="id" value="' + esc(item.id) + '">' +
+      '<div class="admin-form-grid">' +
+        '<label class="field"><span>' + t('promotionCode') + '</span><input name="code" value="' + esc(item.code || '') + '" placeholder="' + t('automaticPromotion') + '"></label>' +
+        '<label class="field"><span>' + t('promotionScope') + '</span><select name="scope" id="promotion-scope"><option value="global" ' + (currentScope === 'global' ? 'selected' : '') + '>' + t('promotionGlobal') + '</option><option value="category" ' + (currentScope === 'category' ? 'selected' : '') + '>' + t('promotionCategory') + '</option><option value="product" ' + (currentScope === 'product' ? 'selected' : '') + '>' + t('promotionProduct') + '</option></select></label>' +
+        '<label class="field"><span>' + t('discountType') + '</span><select name="type"><option value="percentage" ' + (item.type === 'percentage' ? 'selected' : '') + '>' + t('percentage') + '</option><option value="fixed" ' + (item.type === 'fixed' ? 'selected' : '') + '>' + t('fixedAmount') + '</option></select></label>' +
+        '<label class="field"><span>' + t('discountValue') + '</span><input name="value" type="number" min="1" step="0.01" required value="' + esc(item.value) + '"></label>' +
+        '<label class="field"><span>' + t('promotionTitleEn') + '</span><input name="titleEn" required value="' + esc(item.title.en) + '"></label>' +
+        '<label class="field"><span>' + t('promotionTitleAr') + '</span><input name="titleAr" required value="' + esc(item.title.ar) + '"></label>' +
+        '<label class="field"><span>' + t('minimumOrder') + '</span><input name="minOrder" type="number" min="0" step="1" value="' + esc(item.minOrder || 0) + '"></label>' +
+        '<label class="field"><span>' + t('maximumDiscount') + '</span><input name="maxDiscount" type="number" min="0" step="1" value="' + esc(item.maxDiscount == null ? '' : item.maxDiscount) + '"></label>' +
+        '<label class="field"><span>' + t('usageLimit') + '</span><input name="usageLimit" type="number" min="0" step="1" value="' + esc(item.usageLimit == null ? '' : item.usageLimit) + '"><small class="form-hint">' + tx('Leave empty for unlimited.', 'اتركه فارغًا لعدد استخدامات غير محدود.') + '</small></label>' +
+        '<label class="field"><span>' + t('priority') + '</span><input name="priority" type="number" step="1" value="' + esc(item.priority || 0) + '"></label>' +
+        '<label class="field"><span>' + t('startsAt') + '</span><input name="startsAt" type="datetime-local" value="' + dateField(item.startsAt) + '"></label>' +
+        '<label class="field"><span>' + t('endsAt') + '</span><input name="endsAt" type="datetime-local" value="' + dateField(item.endsAt) + '"></label>' +
+        '<label class="check-row"><input name="active" type="checkbox" ' + (item.active ? 'checked' : '') + '><span>' + t('promotionActive') + '</span></label>' +
+        targetBlock +
+      '</div>' +
+      '<div class="promotion-mode-note"><strong>' + (item.code ? t('couponPromotion') : t('automaticPromotion')) + '</strong><span>' + (item.code ? tx('Customers enter the code at checkout.', 'العميل يدخل الكود عند إتمام الطلب.') : tx('Applied automatically when eligible.', 'يطبق تلقائيًا عند استيفاء الشروط.')) + '</span></div>' +
+      '<div class="modal-actions"><button type="button" class="button button-outline" data-action="modal-close">' + t('cancel') + '</button><button class="button button-primary" type="submit">' + t('save') + '</button></div></form>';
+    modalHost(C().modal(t('promotions'), content));
+
+    const form = document.getElementById('promotion-form');
+    const scopeInput = document.getElementById('promotion-scope');
+    function refreshTargets() {
+      const scope = scopeInput.value;
+      const block = document.getElementById('promotion-target-block');
+      const list = document.getElementById('promotion-target-list');
+      if (!block || !list) return;
+      block.classList.toggle('hidden', scope === 'global');
+      if (scope !== 'global') list.innerHTML = promotionTargetOptions(scope, { targetIds: Array.from(form.querySelectorAll('[name="promotionTargetIds"]:checked')).map(function (node) { return node.value; }) }, products, categories);
+    }
+    scopeInput.addEventListener('change', refreshTargets);
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      const values = new FormData(form);
+      const scope = values.get('scope');
+      const targetIds = Array.from(form.querySelectorAll('[name="promotionTargetIds"]:checked')).map(function (node) { return node.value; });
+      if (scope !== 'global' && !targetIds.length) { C().toast(t('noTargetWarning'), 'error'); return; }
+      const code = String(values.get('code') || '').trim().toUpperCase();
+      const payload = {
+        id: values.get('id') || undefined,
+        code: code,
+        title: { en: String(values.get('titleEn') || '').trim(), ar: String(values.get('titleAr') || '').trim() },
+        type: values.get('type'),
+        value: Number(values.get('value')),
+        scope: scope,
+        targetIds: targetIds,
+        minOrder: Number(values.get('minOrder') || 0),
+        maxDiscount: values.get('maxDiscount') === '' ? null : Number(values.get('maxDiscount')),
+        usageLimit: values.get('usageLimit') === '' ? null : Number(values.get('usageLimit')),
+        priority: Number(values.get('priority') || 0),
+        active: values.has('active'),
+        startsAt: values.get('startsAt') ? new Date(values.get('startsAt')).toISOString() : '',
+        endsAt: values.get('endsAt') ? new Date(values.get('endsAt')).toISOString() : ''
+      };
+      try {
+        await Store.repo.savePromotion(payload);
+        C().toast(t('promotionSaved'));
+        closeModal();
+        Store.renderCurrent();
+      } catch (error) { C().toast(error.message || t('errorBody'), 'error'); }
+    });
+  }
+
   async function promotionsContent() {
-    const promotions = await Store.repo.listPromotions();
-    return '<div class="admin-toolbar"><span>' + promotions.length + ' · ' + t('promotions') + '</span><button class="button button-primary" type="button" data-action="add-promotion">' + C().icon('plus', 16) + t('createPromotion') + '</button></div><div class="promotion-grid">' + (promotions.length ? promotions.map(function (promo) { return '<article class="promotion-card"><div class="promotion-ticket"><span>' + (promo.type === 'percentage' ? esc(promo.value) + '%' : C().money(promo.value)) + '</span><small>' + t(promo.type === 'percentage' ? 'percentage' : 'fixedAmount') + '</small></div><div class="promotion-copy"><span class="eyebrow">' + (promo.active ? t('active') : t('inactive')) + '</span><h2>' + esc(loc(promo.title)) + '</h2><code>' + esc(promo.code) + '</code><small>' + (promo.startsAt ? C().date(promo.startsAt) : '—') + ' → ' + (promo.endsAt ? C().date(promo.endsAt) : '—') + '</small><div><button type="button" class="button button-outline button-small" data-action="edit-promotion" data-id="' + esc(promo.id) + '">' + t('edit') + '</button><button type="button" class="icon-button danger-icon" data-action="delete-promotion" data-id="' + esc(promo.id) + '" aria-label="' + t('delete') + '">' + C().icon('trash', 15) + '</button></div></div></article>'; }).join('') : C().empty('info', t('noPromotions'), t('noPromotions'))) + '</div>';
+    const [promotions, products, categories] = await Promise.all([
+      Store.repo.listPromotions(),
+      Store.repo.listProducts({ includeInactive: true }),
+      Store.repo.listCategories(true)
+    ]);
+    return '<div class="admin-toolbar"><span>' + promotions.length + ' · ' + t('promotions') + '</span><button class="button button-primary" type="button" data-action="add-promotion">' + C().icon('plus', 16) + t('createPromotion') + '</button></div><div class="promotion-grid">' +
+      (promotions.length ? promotions.map(function (promo) {
+        const scopeLabel = promo.scope === 'category' ? t('promotionCategory') : promo.scope === 'product' ? t('promotionProduct') : t('promotionGlobal');
+        const codeLabel = promo.code ? '<code>' + esc(promo.code) + '</code>' : '<code>AUTO</code>';
+        const limits = [];
+        if (promo.minOrder > 0) limits.push(t('minimumOrder') + ': ' + C().money(promo.minOrder));
+        if (promo.maxDiscount != null) limits.push(t('maximumDiscount') + ': ' + C().money(promo.maxDiscount));
+        if (promo.usageLimit != null) limits.push(t('usageLimit') + ': ' + promo.usedCount + '/' + promo.usageLimit);
+        return '<article class="promotion-card"><div class="promotion-ticket"><span>' + (promo.type === 'percentage' ? esc(promo.value) + '%' : C().money(promo.value)) + '</span><small>' + esc(scopeLabel) + '</small></div><div class="promotion-copy"><span class="eyebrow">' + (promo.active ? t('active') : t('inactive')) + ' · ' + esc(scopeLabel) + '</span><h2>' + esc(loc(promo.title)) + '</h2>' + codeLabel + '<small>' + (limits.length ? esc(limits.join(' · ')) + '<br>' : '') + (promo.startsAt ? C().date(promo.startsAt) : '—') + ' → ' + (promo.endsAt ? C().date(promo.endsAt) : '—') + '</small><div><button type="button" class="button button-outline button-small" data-action="edit-promotion" data-id="' + esc(promo.id) + '">' + t('edit') + '</button><button type="button" class="icon-button danger-icon" data-action="delete-promotion" data-id="' + esc(promo.id) + '" aria-label="' + t('delete') + '">' + C().icon('trash', 15) + '</button></div></div></article>';
+      }).join('') : C().empty('info', t('noPromotions'), t('noPromotions'))) + '</div>';
   }
   async function settingsContent() {
     const settings = await Store.repo.getSettings();
