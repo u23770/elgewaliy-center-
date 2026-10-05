@@ -101,6 +101,10 @@
       Store.repo.getSiteConfig(false).catch(function () { return {}; })
     ]);
     const site = config || {};
+    if (window.StoreSiteConfig && document.documentElement) {
+      const vars = window.StoreSiteConfig.themeCssVariables(site);
+      Object.keys(vars).forEach(function (key) { document.documentElement.style.setProperty(key, vars[key]); });
+    }
     const identity = site.identity || {};
     const content = site.content || {};
     const contact = content.contact || {};
