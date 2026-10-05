@@ -1,102 +1,14 @@
 "use client";
-
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-
-const labels: Record<string,string> = {
-  new: "تم استلام الطلب",
-  accepted: "تم قبول الطلب",
-  preparing: "جاري التجهيز",
-  ready: "الطلب جاهز",
-  out_for_delivery: "خرج للتوصيل",
-  shipped: "خرج للتوصيل",
-  delivered: "تم التوصيل",
-  cancelled: "ملغي",
-};
-
-export default function Track() {
-  const [id, setId] = useState("");
-  const [token, setToken] = useState("");
-  const [order, setOrder] = useState<any>(null);
-  const [error, setError] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
-
-  async function load(orderNumber = id, trackingToken = token) {
-    if (!orderNumber || !trackingToken) return;
-    setError("");
-    const { data, error: rpcError } = await supabase.rpc("get_guest_store_order_by_number", {
-      p_order_number: orderNumber,
-      p_tracking_token: trackingToken,
-    });
-    if (rpcError || !data?.order) {
-      setError("بيانات التتبع غير صحيحة أو انتهت صلاحيتها.");
-      return;
-    }
-    setOrder(data);
-  }
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const orderNumber = params.get("order");
-    const queryToken = params.get("token");
-    if (orderNumber && queryToken) {
-      setId(orderNumber);
-      setToken(queryToken);
-      load(orderNumber, queryToken);
-    } else {
-      try {
-        const saved = JSON.parse(localStorage.getItem("elgewaliy-active-order") || "null");
-        if (saved?.orderId && saved?.trackingToken) {
-          setId(saved.orderNumber || "");
-          setToken(saved.trackingToken);
-        }
-      } catch {}
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!id || !token) return;
-    let active = true;
-    const refresh = async () => {
-      if (!active) return;
-      setRefreshing(true);
-      await load(id, token);
-      if (active) setRefreshing(false);
-    };
-    const timer = window.setInterval(refresh, 5000);
-    return () => { active = false; window.clearInterval(timer); };
-  }, [id, token]);
-
-  const status = order?.order?.status as string | undefined;
-  const progress = ["new","accepted","preparing","ready","out_for_delivery","delivered"].indexOf(status || "");
-
-  return (
-    <main className="min-h-screen bg-orange-50 p-4">
-      <div className="mx-auto max-w-xl py-16">
-        <a href="/" className="text-orange-600">← العودة للمتجر</a>
-        <div className="card mt-5 p-7">
-          <h1 className="text-3xl font-black">تتبع طلبك</h1>
-          <p className="mt-2 text-zinc-500">استخدم رقم الطلب ورمز التتبع الخاص بطلبك.</p>
-          <input value={id} onChange={e => setId(e.target.value)} placeholder="معرّف الطلب" className="mt-6 w-full rounded-2xl border p-4" />
-          <input value={token} onChange={e => setToken(e.target.value)} placeholder="رمز التتبع" className="mt-3 w-full rounded-2xl border p-4" />
-          <button onClick={() => load()} disabled={refreshing} className="mt-3 w-full rounded-2xl bg-orange-500 py-4 font-black text-white disabled:opacity-60">{refreshing ? "جارٍ التحديث..." : "تتبع الطلب"}</button>
-
-          {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-
-          {order?.order && (
-            <div className="mt-7 rounded-2xl bg-orange-50 p-5">
-              <div className="text-sm text-zinc-500">الطلب {order.order.order_number}</div>
-              <div className="mt-2 text-2xl font-black text-orange-600">{labels[status || ""] || status}</div>
-              <div className="mt-4 h-2 rounded-full bg-orange-100">
-                <div className="h-2 rounded-full bg-orange-500 transition-all" style={{ width: `${Math.max(0, progress) / 5 * 100}%` }} />
-              </div>
-              <div className="mt-4 space-y-2 text-sm text-zinc-500">
-                {order.events?.map((event:any) => <div key={event.id}>• {labels[event.status] || event.status}</div>)}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </main>
-  );
+import {useEffect,useMemo,useState} from "react";
+import {supabase} from "@/lib/supabase";
+const labels:Record<string,string>={new:"تم استلام الطلب",accepted:"تم قبول الطلب",preparing:"جاري التجهيز",ready:"الطلب جاهز",out_for_delivery:"خرج للتوصيل",shipped:"خرج للتوصيل",delivered:"تم التوصيل",cancelled:"تم إلغاء الطلب"};
+const stages=["new","accepted","preparing","ready","out_for_delivery","delivered"];
+const dateText=(v:string)=>{const d=new Date(v);return Number.isNaN(d.getTime())?"":d.toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"})};
+export default function Track(){
+ const [number,setNumber]=useState(""),[token,setToken]=useState(""),[data,setData]=useState<any>(null),[error,setError]=useState(""),[busy,setBusy]=useState(false);
+ const load=async(n=number,t=token)=>{if(!n.trim()||!t.trim()){setError("اكتب رقم الطلب ورمز التتبع.");return}setBusy(true);setError("");const {data:r,error:e}=await supabase.rpc("get_guest_store_order_by_number",{p_order_number:n.trim(),p_tracking_token:t.trim()});if(e||!r?.order){setData(null);setError("بيانات التتبع غير صحيحة أو غير متاحة.")}else setData(r);setBusy(false)};
+ useEffect(()=>{const q=new URLSearchParams(window.location.search),n=q.get("order"),t=q.get("token");if(n&&t){setNumber(n);setToken(t);load(n,t);return}try{const x=JSON.parse(localStorage.getItem("elgewaliy-active-order")||"null");if(x?.orderNumber&&x?.trackingToken){setNumber(x.orderNumber);setToken(x.trackingToken)}}catch{}},[]);
+ useEffect(()=>{if(!number||!token)return;const id=window.setInterval(()=>load(number,token),5000);return()=>window.clearInterval(id)},[number,token]);
+ const status=data?.order?.status as string|undefined,idx=useMemo(()=>stages.indexOf(status||""),[status]),progress=status==="cancelled"?0:Math.max(0,Math.min(100,(Math.max(0,idx)/(stages.length-1))*100));
+ return <main className="flow-page" dir="rtl"><div className="tracking-shell"><header className="tracking-header"><a className="flow-brand" href="/"><span className="brand-mark">ج</span><span><strong>الجويلي</strong><small>ELGEWALIY</small></span></a><a className="back-link" href="/">← المتجر</a></header><section className="tracking-intro"><span className="flow-label">TRACK / 05</span><h1>تتبع طلبك</h1><p>استخدم رقم الطلب ورمز التتبع الخاص به.</p></section><section className="tracking-search"><label><span>رقم الطلب</span><input value={number} onChange={e=>setNumber(e.target.value)} placeholder="EGW-123456"/></label><label><span>رمز التتبع</span><input value={token} onChange={e=>setToken(e.target.value)} placeholder="Tracking token"/></label><button onClick={()=>load()} disabled={busy}>{busy?"جارٍ...":"عرض الحالة"}</button></section>{error&&<div className="tracking-error">{error}</div>}{data?.order&&<section className="tracking-card"><div className="tracking-card-top"><div><span>ORDER NUMBER</span><strong>{data.order.order_number}</strong></div><div className={"status-tag "+(status==="cancelled"?"cancelled":"")}>{labels[status||""]||status}</div></div>{status!=="cancelled"&&<><div className="progress-track"><span style={{width:String(progress)+"%"}}/></div><div className="tracking-stages">{stages.map((s,i)=><div key={s} className={(idx>=i?"passed ":"")+(s===status?"current":"")}><span>{idx>i?"✓":i+1}</span><small>{labels[s]}</small></div>)}</div></>}<div className="tracking-columns"><div><h2>تفاصيل الطلب</h2><div className="order-lines">{(data.items||[]).map((i:any)=><div key={i.id}><span>{i.quantity} × {i.product_name_ar||i.product_name_en||"منتج"}</span><strong>{i.line_total} ج.م</strong></div>)}</div></div><div className="event-panel"><h2>آخر التحديثات</h2>{(data.events||[]).map((e:any)=><div className="event" key={e.id}><span/><div><strong>{labels[e.status]||e.status}</strong><small>{dateText(e.created_at)}</small></div></div>)}</div></div><div className="tracking-footer"><span>التحديث تلقائيًا كل 5 ثواني</span><a href="/">كمل التسوق ←</a></div></section>}</div></main>
 }

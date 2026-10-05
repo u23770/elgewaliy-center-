@@ -1,179 +1,25 @@
 "use client";
-
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import type { CartItem } from "@/lib/cart";
-
-export default function Checkout() {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [done, setDone] = useState("");
-  const [trackingToken, setTrackingToken] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const total = useMemo(() => cart.reduce((s, p) => s + p.price * p.quantity, 0), [cart]);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("elgewaliy-cart");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setCart(Array.isArray(parsed) ? parsed : []);
-      }
-    } catch {}
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setName((data.user.user_metadata?.name as string) || "");
-    });
-  }, []);
-
-  async function submit() {
-    if (!name.trim() || !phone.trim() || !address.trim() || cart.length === 0) return;
-    setLoading(true);
-    setDone("");
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    let customerId: string | null = null;
-    if (user) {
-      const { data: existing } = await supabase
-        .from("customers")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .maybeSingle();
-
-      if (existing) {
-        customerId = existing.id;
-      } else {
-        const { data: customer, error } = await supabase
-          .from("customers")
-          .insert({
-            name: name.trim(),
-            phone: phone.trim(),
-            address: address.trim(),
-            email: user.email ?? null,
-            auth_user_id: user.id,
-          })
-          .select("id")
-          .single();
-
-        if (error || !customer) {
-          setDone("تعذر حفظ بيانات العميل حاليًا. حاول مرة أخرى.");
-          setLoading(false);
-          return;
-        }
-        customerId = customer.id;
-      }
-    }
-
-    const { data, error } = await supabase.rpc("create_store_order", {
-      p_customer_id: customerId,
-      p_customer_name: name.trim(),
-      p_customer_phone: phone.trim(),
-      p_customer_address: address.trim(),
-      p_notes: "",
-      p_payment_method: paymentMethod,
-      p_maps_link: "",
-      p_delivery_zone: "",
-      p_delivery_subzone: "",
-      p_items: cart.map(item => ({
-        product_id: item.productId,
-        variant_id: item.variantId ?? null,
-        quantity: item.quantity
-      })),
-    });
-
-    if (error || !data) {
-      setDone(error?.message || "تعذر إنشاء الطلب حاليًا. حاول مرة أخرى.");
-      setLoading(false);
-      return;
-    }
-
-    const result = data as {
-      id: string;
-      order_number: string;
-      tracking_token: string;
-    };
-
-    localStorage.removeItem("elgewaliy-cart");
-    localStorage.setItem(
-      "elgewaliy-active-order",
-      JSON.stringify({ orderId: result.id, orderNumber: result.order_number, trackingToken: result.tracking_token })
-    );
-    setCart([]);
-    setDone(result.order_number);
-    setTrackingToken(result.tracking_token);
-    setLoading(false);
-  }
-
-  if (done.startsWith("EGW-")) {
-    return (
-      <main className="min-h-screen bg-[#fffaf5] p-4">
-        <div className="mx-auto max-w-xl py-20">
-          <div className="auth-card text-center">
-            <div className="mx-auto grid size-16 place-items-center rounded-full bg-orange-100 text-3xl text-orange-600">✓</div>
-            <h1 className="mt-5 text-3xl font-black">تم استلام طلبك</h1>
-            <p className="mt-3 text-zinc-500">رقم الطلب</p>
-            <b className="mt-1 block text-2xl text-orange-600">{done}</b>
-            <p className="mt-3 text-sm text-zinc-500">احتفظ ببيانات التتبع لمتابعة حالة الطلب.</p>
-            <div className="mt-7 grid gap-3">
-              <a href={"/track?order=" + encodeURIComponent(done) + "&token=" + encodeURIComponent(trackingToken)} className="rounded-2xl bg-orange-500 px-7 py-4 font-black text-white">تتبع الطلب</a>
-              <a href="/" className="rounded-2xl border border-zinc-200 px-7 py-4 font-black">العودة للمتجر</a>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="min-h-screen bg-[#fffaf5] p-4">
-      <div className="mx-auto max-w-3xl py-8 md:py-14">
-        <a href="/" className="text-sm font-black text-orange-600">← العودة للمتجر</a>
-        <div className="mt-5 grid gap-5 md:grid-cols-[1.1fr_.9fr]">
-          <section className="auth-card">
-            <span className="section-kicker">CHECKOUT / 01</span>
-            <h1 className="mt-2 text-3xl font-black">إتمام الطلب</h1>
-            <p className="mt-2 text-zinc-500">بيانات بسيطة عشان نوصّل طلبك.</p>
-            <div className="mt-7 grid gap-4">
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="الاسم" className="auth-input" />
-              <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="رقم الهاتف" className="auth-input" />
-              <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="العنوان بالتفصيل" className="auth-input min-h-32" />
-              <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="auth-input">
-                <option value="cash">الدفع عند الاستلام - كاش</option>
-                <option value="card_on_delivery">الدفع عند الاستلام - كارت</option>
-              </select>
-              {done && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{done}</p>}
-              <button disabled={loading || !cart.length || !name || !phone || !address} onClick={submit} className="rounded-2xl bg-orange-500 py-4 font-black text-white shadow-lg shadow-orange-200 disabled:opacity-40">
-                {loading ? "جارٍ تأكيد الطلب..." : "تأكيد الطلب"}
-              </button>
-            </div>
-          </section>
-
-          <aside className="auth-card h-fit">
-            <span className="section-kicker">ORDER / 02</span>
-            <h2 className="mt-2 text-2xl font-black">ملخص الطلب</h2>
-            <div className="mt-6 space-y-3">
-              {cart.map(item => (
-                <div key={item.key} className="flex items-center justify-between gap-3 rounded-2xl bg-orange-50 p-4">
-                  <div>
-                    <b className="text-sm">{item.name_ar}</b>
-                    <p className="mt-1 text-xs text-zinc-500">{item.quantity} × {item.price} ج.م {item.size && ("• " + item.size)}</p>
-                  </div>
-                  <b>{item.price * item.quantity} ج.م</b>
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 flex justify-between border-t pt-5 text-lg font-black">
-              <span>الإجمالي</span>
-              <span className="text-orange-600">{total} ج.م</span>
-            </div>
-            <a href="/auth" className="mt-5 block text-center text-xs font-bold text-zinc-400">عندك حساب؟ سجل دخولك</a>
-          </aside>
-        </div>
-      </div>
-    </main>
-  );
+import {useEffect,useMemo,useState} from "react";
+import {supabase} from "@/lib/supabase";
+import type {CartItem} from "@/lib/cart";
+const money=(n:number)=>new Intl.NumberFormat("ar-EG",{maximumFractionDigits:0}).format(n)+" ج.م";
+type Step=1|2|3;
+export default function Checkout(){
+ const [cart,setCart]=useState<CartItem[]>([]),[step,setStep]=useState<Step>(1),[name,setName]=useState(""),[phone,setPhone]=useState(""),[address,setAddress]=useState(""),[mapsLink,setMapsLink]=useState(""),[notes,setNotes]=useState(""),[payment,setPayment]=useState<"cash"|"card_on_delivery">("cash"),[message,setMessage]=useState(""),[busy,setBusy]=useState(false),[order,setOrder]=useState("");
+ useEffect(()=>{try{const v=JSON.parse(localStorage.getItem("elgewaliy-cart")||"[]");if(Array.isArray(v))setCart(v)}catch{};supabase.auth.getUser().then(({data})=>{const n=data.user?.user_metadata?.name;if(typeof n==="string")setName(n)})},[]);
+ const total=useMemo(()=>cart.reduce((s,i)=>s+i.price*i.quantity,0),[cart]);
+ const next=()=>{setMessage("");if(step===1){if(name.trim().length<2||phone.trim().length<7){setMessage("اكتب الاسم ورقم الهاتف بشكل صحيح.");return}setStep(2);return}if(!address.trim()){setMessage("اكتب عنوان الاستلام بالتفصيل.");return}setStep(3)};
+ const submit=async()=>{if(!cart.length){setMessage("السلة فاضية.");return}setBusy(true);setMessage("");const {data:{user}}=await supabase.auth.getUser();let customerId:string|null=null;
+ if(user){const {data:existing}=await supabase.from("customers").select("id").eq("auth_user_id",user.id).maybeSingle();if(existing?.id){customerId=existing.id;await supabase.from("customers").update({name:name.trim(),phone:phone.trim(),address:address.trim()}).eq("id",existing.id)}else{const {data:created}=await supabase.from("customers").insert({name:name.trim(),phone:phone.trim(),address:address.trim(),email:user.email??null,auth_user_id:user.id}).select("id").single();customerId=created?.id??null}}
+ const {data,error}=await supabase.rpc("create_store_order",{p_customer_id:customerId,p_customer_name:name.trim(),p_customer_phone:phone.trim(),p_customer_address:address.trim(),p_notes:notes.trim(),p_payment_method:payment,p_maps_link:mapsLink.trim(),p_delivery_zone:"",p_delivery_subzone:"",p_items:cart.map(i=>({product_id:i.productId,variant_id:i.variantId??null,quantity:i.quantity}))});
+ if(error||!data){setMessage(error?.message||"تعذر إنشاء الطلب.");setBusy(false);return}
+ const r=data as {id:string;order_number:string;tracking_token:string};localStorage.removeItem("elgewaliy-cart");localStorage.setItem("elgewaliy-active-order",JSON.stringify({orderId:r.id,orderNumber:r.order_number,trackingToken:r.tracking_token}));setCart([]);setOrder(r.order_number);localStorage.setItem("elgewaliy-last-token",r.tracking_token);setBusy(false)
+ };
+ if(order)return <main className="flow-page" dir="rtl"><div className="flow-card success-card"><span className="success-icon">✓</span><span className="flow-label">ORDER CONFIRMED / 04</span><h1>تم استلام طلبك</h1><p>رقم الطلب</p><strong className="order-number">{order}</strong><small>احتفظ بالرقم عشان تتابع حالة الطلب.</small><div className="flow-actions"><a className="flow-primary" href={"/track?order="+encodeURIComponent(order)}>تتبع الطلب</a><a className="flow-secondary" href="/">العودة للمتجر</a></div></div></main>;
+ return <main className="flow-page" dir="rtl"><div className="flow-shell"><header className="flow-top"><a className="flow-brand" href="/"><span className="brand-mark">ج</span><span><strong>الجويلي</strong><small>ELGEWALIY</small></span></a><a className="back-link" href="/">← العودة للتشكيلة</a></header><div className="stepper">{[["1","بياناتك"],["2","الاستلام"],["3","المراجعة"]].map((x,i)=><div key={x[0]} className={"step "+(step>=i+1?"done":"")}><span>{step>i+1?"✓":x[0]}</span><small>{x[1]}</small></div>)}</div><div className="flow-grid"><section className="form-card"><span className="flow-label">CHECKOUT / 0{step}</span>
+ {step===1&&<><h1>بيانات الاستلام</h1><p>اكتب بيانات الشخص اللي هيستلم الطلب.</p><div className="field-grid"><label><span>الاسم</span><input value={name} onChange={e=>setName(e.target.value)} /></label><label><span>رقم الهاتف</span><input value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel" /></label></div></>}
+ {step===2&&<><h1>مكان الاستلام</h1><p>العنوان ورابط المكان الاختياري.</p><label className="wide-field"><span>العنوان بالتفصيل</span><textarea value={address} onChange={e=>setAddress(e.target.value)} rows={5}/></label><label className="wide-field"><span>رابط الخريطة <em>اختياري</em></span><input value={mapsLink} onChange={e=>setMapsLink(e.target.value)} placeholder="Google Maps link"/></label><label className="wide-field"><span>ملاحظات <em>اختياري</em></span><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3}/></label></>}
+ {step===3&&<><h1>راجع طلبك</h1><p>راجع البيانات واختار طريقة الدفع.</p><div className="review-box"><div><span>الاسم</span><strong>{name}</strong></div><div><span>الهاتف</span><strong>{phone}</strong></div><div><span>العنوان</span><strong>{address}</strong></div></div><div className="payment-title">طريقة الدفع</div><div className="payment-grid"><button className={payment==="cash"?"payment active":"payment"} onClick={()=>setPayment("cash")}><strong>كاش عند الاستلام</strong><span>الدفع نقدًا وقت الاستلام</span></button><button className={payment==="card_on_delivery"?"payment active":"payment"} onClick={()=>setPayment("card_on_delivery")}><strong>كارت عند الاستلام</strong><span>الدفع بالبطاقة وقت الاستلام</span></button></div></>}
+ {message&&<div className="form-error" role="alert">{message}</div>}<div className="form-actions">{step>1?<button className="form-back" onClick={()=>setStep((step-1) as Step)}>رجوع</button>:<a className="form-back" href="/">السلة</a>}{step<3?<button className="form-next" onClick={next}>متابعة ←</button>:<button className="form-next" onClick={submit} disabled={busy}>{busy?"جارٍ التأكيد...":"تأكيد الطلب ✓"}</button>}</div></section>
+ <aside className="summary-card"><span className="flow-label">YOUR BAG / 03</span><h2>ملخص الطلب</h2><div className="summary-list">{cart.map(i=><div className="summary-item" key={i.key}><div><strong>{i.name_ar}</strong><small>{[i.size?"المقاس: "+i.size:"",i.color?"اللون: "+i.color:""].filter(Boolean).join(" • ")}</small></div><span>{money(i.price*i.quantity)}</span></div>)}</div><div className="summary-total"><span>الإجمالي</span><strong>{money(total)}</strong></div><div className="secure-note">بيانات الدفع لا يتم تخزينها في المتصفح.</div></aside></div></div></main>
 }
