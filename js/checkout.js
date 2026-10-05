@@ -5,12 +5,7 @@
   const tx = (en, ar) => Store.i18n.locale === 'ar' ? ar : en;
   const esc = (value) => Store.escape(value);
   const loc = (value) => Store.i18n.localized(value);
-  const isMapsUrl = (value) => {
-    try {
-      const u = new URL(String(value || '').trim());
-      return u.protocol === 'https:' && /(^|\.)google\.com$|(^|\.)google\.co\./i.test(u.hostname) && /maps/i.test(u.pathname + u.search + u.hostname);
-    } catch (_) { return false; }
-  };
+  const isMapsUrl = (value) => root.StoreMapsUtils ? root.StoreMapsUtils.isGoogleMapsLink(value) : false;
   let zonesCache = null;
 
   async function getZones() {
