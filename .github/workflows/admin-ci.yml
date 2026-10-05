@@ -11,4 +11,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test tests/admin-import-utils.test.js
+      - name: Run unit tests
+        run: node --test tests/*.test.js
+      - name: Syntax-check application JavaScript
+        shell: bash
+        run: |
+          set -e
+          for file in js/*.js admin/*.js; do
+            node --check "$file"
+          done
