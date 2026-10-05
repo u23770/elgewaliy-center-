@@ -16,7 +16,7 @@
   function state() {
     let current = readRaw(STATE_KEY);
     if (!current || typeof current !== 'object') {
-      current = Store.clone(Store.demoData);
+      current = {};
       writeRaw(STATE_KEY, current);
     }
     return current;
@@ -31,7 +31,7 @@
     saveSession: function (value) { if (value) writeRaw(SESSION_KEY, value); else { try { localStorage.removeItem(SESSION_KEY); } catch (_) { delete memory[SESSION_KEY]; } Store.fire('ceg:session-changed'); } },
     locale: function () { const value = readRaw(LOCALE_KEY); return value === 'en' || value === 'ar' ? value : 'ar'; },
     saveLocale: function (value) { writeRaw(LOCALE_KEY, value); },
-    clearDemo: function () { try { [STATE_KEY, CART_KEY, SESSION_KEY].forEach(function (key) { localStorage.removeItem(key); }); } catch (_) {} memory = Object.create(null); }
+    clearLocalCache: function () { try { [STATE_KEY, CART_KEY, SESSION_KEY].forEach(function (key) { localStorage.removeItem(key); }); } catch (_) {} memory = Object.create(null); }
   };
   Store.storage = storage;
 })(window.Store);
