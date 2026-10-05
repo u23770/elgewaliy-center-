@@ -6,10 +6,10 @@ A bilingual Arabic/English clothing storefront and local admin workspace made wi
 
 - Open `index.html` in a modern browser, or serve this folder with any static file server. For example, with Python installed: `python3 -m http.server 8000` from this folder, then visit `http://localhost:8000`.
 - This project does not use or require Node.js/npm to run, test, or deploy.
-- The default adapter is `demo`; product data, cart, demo accounts, orders, settings, and promotions are stored locally in the current browser. The storefront and admin can be reviewed without a Supabase project.
+- The production adapter is `supabase`; catalogue, inventory, customers, orders, settings, and promotions are stored in the live Supabase project. The repository still contains an isolated `demo` adapter for development only and it is not the production data source.
 - To clear the preview data, remove local-storage keys beginning `ceg-static-` (and `ceg-static-newsletter`) for this site.
 
-### Local demo sign-ins
+### Local development demo sign-ins
 
 **Admin** (`/admin/login.html`)
 
@@ -32,7 +32,7 @@ These are intentionally public preview credentials. Demo-mode authentication and
 - Home campaign, dynamic category collections, product cards, search, category/size/colour/price/availability/sale filters, and sorting.
 - Product detail gallery with size and colour selection, variant-aware price/stock, sold-out combinations disabled, quantity control, and related pieces.
 - Persistent cart and accessible slide-in bag drawer, quantity validation, subtotal, delivery fee, free-delivery threshold, and EGP total.
-- Checkout with customer details, Egyptian governorates, address, delivery notes, cash/card on delivery, local demo promo-code validation, server-RPC integration boundary, order confirmation, phone-and-order-number tracking, status timeline, and customer order history.
+- Checkout with customer details, Egyptian governorates, address, delivery notes, cash/card on delivery, promotion validation, authoritative server-side pricing/stock/discount calculation, order confirmation, phone-and-order-number tracking, status timeline, and customer order history.
 - Registration, sign-in, profile editing, password-reset request, and session persistence.
 - Arabic/English switching updates the document language/direction and preserves form input, product selections, cart, and signed-in state.
 - Empty/error/loading feedback, accessible form labels and buttons, toast notifications, keyboard Escape handling, focus-visible styling, and responsive layouts.
@@ -43,7 +43,7 @@ These are intentionally public preview credentials. Demo-mode authentication and
 - Product CRUD with English/Arabic names and descriptions, category, SKU, image URL list, price/sale price, active/featured flags, simple-stock products, and generated/editable variant combinations (size only, colour only, or size + colour).
 - Category CRUD, size and colour catalogs, per-variant/simple-product inventory editing, order status updates and detail view, customer list, promotion CRUD, and delivery/store settings.
 - Statuses used throughout: `pending`, `confirmed`, `preparing`, `out_for_delivery`, `delivered`, and `cancelled`.
-- Every admin screen shows a local-demo warning when using the local adapter.
+- Production admin screens show a live-store status indicator. The local-demo indicator appears only when the isolated demo adapter is explicitly enabled.
 
 ## Project structure
 
@@ -86,7 +86,7 @@ Upload this folder as the site root on GitHub Pages, Netlify, or Vercel. All pag
 
 ## Supabase-ready data layer
 
-The default `js/config.js` is deliberately configured for local demo data and has empty public Supabase values. To use the optional REST/RPC adapter, edit its public configuration:
+`js/config.js` is configured for the live Supabase backend. The browser contains only the public publishable key. Never place a service-role key or private credential in the repository.
 
 ```js
 window.CEG_CONFIG = {
@@ -111,18 +111,18 @@ window.CEG_CONFIG = {
 
 `.env.example` documents the public deployment settings, but static hosting does not automatically load `.env`; copy the project URL and **anon/public key** into `js/config.js` or use a static host’s build-free placeholder replacement. Supabase anon/publishable keys are browser-visible by design. **Never add `service_role`, passwords, or another private server secret to this folder.**
 
-The optional adapter uses Supabase Auth REST endpoints, PostgREST, and database RPCs without loading a third-party SDK. Checkout sends product/variant IDs and quantities to `place_order`; the SQL function reloads current prices, locks/checks stock, computes delivery, and saves the order. Guest tracking uses the phone-verified `track_order` RPC. The public storefront only reads active catalogue rows; admin writes are checked by RLS/admin RPCs.
+The live adapter uses Supabase Auth REST endpoints, PostgREST, and protected database RPCs without loading a third-party SDK. Checkout sends product/variant IDs, quantities, and an optional promotion code to `place_order`; the SQL function reloads current prices, locks/checks stock, calculates eligible discounts and delivery, increments promotion usage atomically, and saves the order. Guest tracking uses the phone-verified `track_order` RPC. Public storefront reads are limited to active catalogue rows; production admin operations use code-authorized RPCs.
 
-The SQL file is a starter schema and has not been applied to a live project here. Review it against the target Supabase project before deployment. Promo-code redemption is enabled in the local demo adapter; the Supabase checkout keeps promo entry disabled until a database promotion-validation/discount RPC is added, so the browser cannot invent a production discount.
+`supabase/schema.sql` is retained as a historical starter schema. The live project uses a newer additive schema and production RPC set; the Supabase project migration history remains the source of truth for the deployed database.
 
 ## Integration boundaries and production operations
 
 - All pages use `Store.repo` from `js/repository.js`; sample products/orders are never embedded in page components.
 - `js/demo-data.js` contains the local catalogue seed. The local adapter persists orders only after a user completes checkout.
 - `js/supabase.js` uses only the configured public anon key; RLS policies in `supabase/schema.sql` are authoritative.
-- No payment gateway, courier API, SMS/transactional email provider, or operational rate-limiter is fabricated. Checkout supports cash/card on delivery only. Connect those services before promising them to customers.
+- Payment gateway, courier API, SMS/transactional email and similar external services are not enabled by this build. Checkout currently supports cash/card on delivery. Add and verify those integrations before promising them to customers.
 - Configure Supabase Auth email delivery, privacy/retention, delivery policy, catalogue imagery rights, backups, monitoring, and production domain redirects before taking real orders.
 
 ## Validation completed
 
-The project was checked for JavaScript syntax, HTML parsing and local asset paths. The local data flow was exercised for catalogue/category filtering, size-colour variant selection, cart stock limits, promo calculation, checkout totals, inventory decrement, phone-verified order lookup, status changes, and cart clearing. Static pages can be served from the directory without any build tooling.
+The project has production-oriented unit coverage for promotion rules, spreadsheet import, admin access storage, live-schema mapping and variant identity preservation, plus JavaScript syntax checks in CI. The live Supabase project has also been smoke-tested for catalogue reads, product details, admin snapshot access, protected admin denial with a wrong code, and an authoritative checkout transaction rolled back after validation.
