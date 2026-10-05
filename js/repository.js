@@ -163,7 +163,7 @@
   const remote = {
     mode: 'supabase',
     listProducts: remoteProducts,
-    getProduct: async function (key) { const products = await remoteProducts({ includeInactive: true }); return products.find(function (product) { return product.id === key || product.slug === key; }) || null; },
+    getProduct: async function (key, includeInactive) { const products = await remoteProducts({ includeInactive: Boolean(includeInactive) }); return products.find(function (product) { return product.id === key || product.slug === key; }) || null; },
     listCategories: async function (includeInactive) { if (includeInactive) { const snapshot = await adminSnapshot(); return (snapshot.categories || []).map(mapCategory); } const rows = await Store.supabase.rest('categories', { select: '*', order: 'sort_order.asc' }); return (rows || []).map(mapCategory).filter(function (item) { return item.active; }); },
     saveCategory: async function (input) { const id = await rpcAdmin('admin_save_category', { p_id: input.id || null, p_slug: slugify(input.slug || input.name.en), p_name_en: input.name.en, p_name_ar: input.name.ar, p_image_url: input.image || '', p_sort_order: Number(input.order || 0), p_active: input.active !== false }); return Object.assign({}, input, { id: id }); },
     deleteCategory: async function (id) { await rpcAdmin('admin_archive_category', { p_id: id }); },
