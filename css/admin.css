@@ -12,3 +12,27 @@
 @media(max-width:560px){.admin-toolbar-actions{width:100%;margin-inline-start:0}.admin-toolbar-actions .button{flex:1}.import-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.import-file-drop{min-height:125px}.import-map-row{grid-template-columns:1fr}.import-actions{flex-direction:column}.import-actions .button{width:100%}}
 
 .promotion-mode-note{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid #e3dfd5;background:#f8f6f0}.promotion-mode-note strong{font-size:8px}.promotion-mode-note span{color:var(--muted);font-size:7px}.admin-form-grid .check-row{align-self:end}.admin-form-grid #promotion-target-block{grid-column:1/-1}.admin-form-grid #promotion-target-block .field{display:grid;gap:7px}.admin-form-grid #promotion-target-block.hidden{display:none}
+
+/* Production admin workspace modules */
+.admin-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.admin-stack{display:flex;flex-direction:column;gap:12px}
+.admin-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.admin-form-grid .field-wide{grid-column:1/-1}
+.admin-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px}
+.admin-editor-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.admin-editor-form .field-wide{grid-column:1/-1}
+.admin-product-cell{display:flex;align-items:center;gap:14px;min-width:0}
+.admin-product-cell img{width:72px;height:72px;object-fit:cover;border-radius:10px;background:#eee}
+.section-editor-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:16px}
+.gallery-admin-photo{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:10px;margin-bottom:14px}
+.quick-action{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border:1px solid #ddd;border-radius:10px;background:transparent;text-align:inherit;color:inherit;cursor:pointer}
+.quick-action i{font-style:normal;font-size:18px}
+.quick-action span{font-weight:700}
+.quick-action small{margin-inline-start:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.65}
+.delivery-assign-form{margin-top:14px}
+@media (max-width:860px){
+  .admin-dashboard-grid,.admin-form-grid,.admin-editor-form{grid-template-columns:1fr}
+  .section-editor-row{grid-template-columns:1fr}
+  .quick-action{flex-wrap:wrap}
+  .quick-action small{width:100%;margin-inline-start:0}
+}
