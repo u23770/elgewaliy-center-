@@ -3,8 +3,7 @@
   const C = function () { return Store.Components; };
   const esc = function (value) { return Store.escape(value); };
   const Pages = Store.Pages = Store.Pages || {};
-  const ADMIN_DEMO = { email: 'admin@centerelgowaily.demo', password: 'CenterDemo!2026' };
-  const CUSTOMER_DEMO = { email: 'customer@centerelgowaily.demo', password: 'CustomerDemo!2026' };
+
   function currentUser() { const session = Store.storage.session(); return session && session.user ? session.user : null; }
   function isAdmin() { const user = currentUser(); return Boolean(user && user.role === 'admin'); }
   function saveSession(session) { Store.storage.saveSession(session); Store.fire('ceg:session-changed'); }
@@ -13,48 +12,24 @@
     return rows && rows[0] ? rows[0] : null;
   }
   async function login(email, password, adminOnly) {
+    if (!Store.useSupabase) throw new Error('Store account service is unavailable.');
+    if (adminOnly) throw new Error(t('adminError'));
     const cleanEmail = String(email || '').trim().toLowerCase();
-    if (Store.useSupabase) {
-      const response = await Store.supabase.auth.signIn(cleanEmail, password);
-      let profile = null;
-      try { profile = await profileFor(response.user.id, response.access_token); } catch (_) {}
-      const user = { id: response.user.id, email: response.user.email || cleanEmail, fullName: profile && profile.full_name || response.user.user_metadata && response.user.user_metadata.full_name || '', phone: profile && profile.phone || '', role: profile && profile.role || 'customer' };
-      if (adminOnly && user.role !== 'admin') { try { await Store.supabase.auth.signOut(); } catch (_) {} throw new Error(t('adminError')); }
-      saveSession({ access_token: response.access_token, refresh_token: response.refresh_token, expires_at: response.expires_at || Math.floor(Date.now() / 1000) + Number(response.expires_in || 3600), user: user });
-      return user;
-    }
-    if (cleanEmail === ADMIN_DEMO.email && password === ADMIN_DEMO.password) {
-      if (!adminOnly) throw new Error(t('loginError'));
-      const user = { id: 'demo-admin', email: ADMIN_DEMO.email, fullName: 'Gowaily Admin', phone: '', role: 'admin' };
-      saveSession({ user: user, demo: true }); return user;
-    }
-    if (cleanEmail === CUSTOMER_DEMO.email && password === CUSTOMER_DEMO.password) {
-      if (adminOnly) throw new Error(t('adminError'));
-      const user = { id: 'demo-customer-user', email: CUSTOMER_DEMO.email, fullName: 'Mariam Hassan', phone: '+20 101 234 5678', role: 'customer' };
-      saveSession({ user: user, demo: true }); return user;
-    }
-    const data = Store.storage.state();
-    const matched = data.customers.find(function (customer) { return customer.email.toLowerCase() === cleanEmail && customer.demoPassword === password; });
-    if (!matched || adminOnly) throw new Error(adminOnly ? t('adminError') : t('loginError'));
-    const user = { id: matched.id, email: matched.email, fullName: matched.fullName, phone: matched.phone || '', role: 'customer' };
-    saveSession({ user: user, demo: true }); return user;
+    const response = await Store.supabase.auth.signIn(cleanEmail, password);
+    const user = { id: response.user.id, email: response.user.email || cleanEmail, fullName: response.user.user_metadata && response.user.user_metadata.full_name || '', phone: response.user.user_metadata && response.user.user_metadata.phone || '', role: 'customer' };
+    saveSession({access_token:response.access_token,refresh_token:response.refresh_token,expires_at:response.expires_at || Math.floor(Date.now()/1000)+Number(response.expires_in||3600),user:user});
+    return user;
   }
   async function register(data) {
-    const email = String(data.email || '').trim().toLowerCase();
-    const name = String(data.fullName || '').trim();
-    if (Store.useSupabase) {
-      const redirectTo = new URL(Store.url('login.html?confirmed=1'), window.location.href).href;
-      const response = await Store.supabase.auth.signUp(email, data.password, { full_name: name, phone: data.phone || '' }, redirectTo);
-      if (!response.session) return { pendingVerification: true };
-      const user = { id: response.user.id, email: response.user.email || email, fullName: name, phone: data.phone || '', role: 'customer' };
-      saveSession({ access_token: response.session.access_token, refresh_token: response.session.refresh_token, expires_at: response.session.expires_at, user: user });
-      return { user: user };
-    }
-    const state = Store.storage.state();
-    if (state.customers.some(function (customer) { return customer.email.toLowerCase() === email; })) throw new Error(t('registerError'));
-    const user = { id: Store.id(), email: email, fullName: name, phone: String(data.phone || ''), role: 'customer' };
-    Store.storage.updateState(function (next) { next.customers.unshift({ id: user.id, email: user.email, fullName: user.fullName, phone: user.phone, role: 'customer', createdAt: new Date().toISOString(), demoPassword: data.password }); return next; });
-    saveSession({ user: user, demo: true }); return { user: user };
+    if (!Store.useSupabase) throw new Error('Store account service is unavailable.');
+    const email=String(data.email||'').trim().toLowerCase();
+    const name=String(data.fullName||'').trim();
+    const redirectTo=new URL(Store.url('login.html?confirmed=1'),window.location.href).href;
+    const response=await Store.supabase.auth.signUp(email,data.password,{full_name:name,phone:data.phone||''},redirectTo);
+    if(!response.session) return {pendingVerification:true};
+    const user={id:response.user.id,email:response.user.email||email,fullName:name,phone:data.phone||'',role:'customer'};
+    saveSession({access_token:response.session.access_token,refresh_token:response.session.refresh_token,expires_at:response.session.expires_at,user:user});
+    return {user:user};
   }
   async function logout() {
     if (Store.useSupabase && Store.storage.session()) { try { await Store.supabase.auth.signOut(); } catch (_) {} }
@@ -109,17 +84,12 @@
   function authVisual() {
     return '<aside class="auth-visual"><img src="' + Store.asset('assets/images/hero-editorial.jpg') + '" alt="" loading="lazy"><span class="auth-visual-shade"></span><div><span class="eyebrow">CENTER EL GOWAILY · CAIRO</span><h2>' + t('storyTitle') + '</h2><p>' + t('storyBody') + '</p></div><span class="auth-visual-mark">ج</span></aside>';
   }
-  function demoLoginCard(adminOnly) {
-    if (Store.useSupabase) return '';
-    const credentials = adminOnly ? ADMIN_DEMO : CUSTOMER_DEMO;
-    const heading = adminOnly ? (Store.i18n.locale === 'ar' ? 'حساب الإدارة للمعاينة' : 'Preview admin access') : (Store.i18n.locale === 'ar' ? 'حساب عميل للمعاينة' : 'Preview customer access');
-    return '<div class="demo-credentials"><span class="demo-credentials-icon">' + C().icon('info', 16) + '</span><div><strong>' + heading + '</strong><small><b>' + esc(credentials.email) + '</b><br>' + esc(credentials.password) + '</small><p>' + t('demoOnlyAuth') + '</p><button type="button" class="text-button" data-action="fill-demo" data-demo="' + (adminOnly ? 'admin' : 'customer') + '">' + (Store.i18n.locale === 'ar' ? 'استخدم بيانات المعاينة' : 'Use demo credentials') + '</button></div></div>';
-  }
+
   Pages.login = function (root) {
     const adminOnly = document.body.dataset.page === 'admin-login';
     const formTitle = adminOnly ? t('adminLogin') : t('loginTitle');
     const heading = adminOnly ? t('adminLogin') : t('signIn');
-    root.innerHTML = '<div class="page-wrap auth-page"><div class="auth-panel"><div class="auth-form-area"><a class="auth-back" href="' + Store.url(adminOnly ? 'admin/index.html' : 'index.html') + '">← ' + t('backHome') + '</a><span class="eyebrow">' + heading + '</span><h1>' + (adminOnly ? t('adminLogin') : t('loginTitle')) + '</h1><p class="auth-intro">' + (adminOnly ? t('adminLoginNotice') : t('loginBody')) + '</p>' + (!adminOnly && Store.query('confirmed') ? '<div class="form-success">' + t('emailVerified') + '</div>' : !adminOnly && Store.query('verify') ? '<div class="form-success">' + t('verificationSent') + '</div>' : '') + '<form id="login-form" class="auth-form"><label class="field"><span>' + t('email') + '</span><input name="email" type="email" autocomplete="email" required></label><label class="field"><span>' + t('password') + '</span><input name="password" type="password" autocomplete="current-password" required minlength="8"></label><div id="auth-error" class="form-error" role="alert" hidden></div><div class="auth-form-meta">' + (!adminOnly ? '<a href="' + Store.url('forgot-password.html') + '">' + t('forgotPassword') + '</a>' : '') + '</div><button class="button button-primary button-full" type="submit">' + t('signIn') + C().icon('arrow', 16) + '</button></form>' + (!adminOnly ? '<p class="auth-switch">' + t('noAccount') + ' <a href="' + Store.url('register.html') + '">' + t('createAccount') + '</a></p>' : '<p class="auth-switch"><a href="' + Store.url('login.html') + '">' + t('signIn') + ' · ' + t('account') + '</a></p>') + demoLoginCard(adminOnly) + '</div>' + authVisual() + '</div></div>';
+    root.innerHTML = '<div class="page-wrap auth-page"><div class="auth-panel"><div class="auth-form-area"><a class="auth-back" href="' + Store.url(adminOnly ? 'admin/index.html' : 'index.html') + '">← ' + t('backHome') + '</a><span class="eyebrow">' + heading + '</span><h1>' + (adminOnly ? t('adminLogin') : t('loginTitle')) + '</h1><p class="auth-intro">' + (adminOnly ? t('adminLoginNotice') : t('loginBody')) + '</p>' + (!adminOnly && Store.query('confirmed') ? '<div class="form-success">' + t('emailVerified') + '</div>' : !adminOnly && Store.query('verify') ? '<div class="form-success">' + t('verificationSent') + '</div>' : '') + '<form id="login-form" class="auth-form"><label class="field"><span>' + t('email') + '</span><input name="email" type="email" autocomplete="email" required></label><label class="field"><span>' + t('password') + '</span><input name="password" type="password" autocomplete="current-password" required minlength="8"></label><div id="auth-error" class="form-error" role="alert" hidden></div><div class="auth-form-meta">' + (!adminOnly ? '<a href="' + Store.url('forgot-password.html') + '">' + t('forgotPassword') + '</a>' : '') + '</div><button class="button button-primary button-full" type="submit">' + t('signIn') + C().icon('arrow', 16) + '</button></form>' + (!adminOnly ? '<p class="auth-switch">' + t('noAccount') + ' <a href="' + Store.url('register.html') + '">' + t('createAccount') + '</a></p>' : '<p class="auth-switch"><a href="' + Store.url('login.html') + '">' + t('signIn') + ' · ' + t('account') + '</a></p>')  + '</div>' + authVisual() + '</div></div>';
     const form = document.getElementById('login-form');
     form.addEventListener('submit', async function (event) {
       event.preventDefault(); const error = document.getElementById('auth-error'); error.hidden = true;
@@ -158,5 +128,5 @@
     root.innerHTML = '<div class="page-wrap page-space profile-page"><div class="profile-welcome"><span class="profile-avatar">' + esc((user.fullName || user.email || 'G').charAt(0).toUpperCase()) + '</span><div><span class="eyebrow">' + t('account') + '</span><h1>' + esc(user.fullName || user.email) + '</h1><p>' + esc(user.email) + '</p></div><button class="button button-outline" type="button" data-action="sign-out">' + t('signOut') + '</button></div><div class="account-layout"><nav class="account-nav"><a class="active" href="' + Store.url('profile.html') + '">' + t('profileTitle') + '</a><a href="' + Store.url('orders.html') + '">' + t('orders') + ' <span>' + orderList.length + '</span></a><a href="' + Store.url('track.html') + '">' + t('trackOrder') + '</a></nav><section class="account-card"><span class="eyebrow">' + t('profileDetails') + '</span><h2>' + t('profileTitle') + '</h2><form id="profile-form" class="form-grid"><label class="field"><span>' + t('fullName') + '</span><input name="fullName" required minlength="2" value="' + esc(user.fullName) + '"></label><label class="field"><span>' + t('email') + '</span><input value="' + esc(user.email) + '" readonly aria-readonly="true"></label><label class="field"><span>' + t('phone') + '</span><input name="phone" type="tel" value="' + esc(user.phone) + '"></label><div class="field-wide"><button class="button button-primary" type="submit">' + t('saveChanges') + C().icon('arrow', 16) + '</button></div></form></section></div></div>';
     document.getElementById('profile-form').addEventListener('submit', async function (event) { event.preventDefault(); const form = event.currentTarget; if (!form.reportValidity()) return; const values = new FormData(form); try { await saveProfile({ fullName: values.get('fullName'), phone: values.get('phone') }); C().toast(t('changesSaved'), 'success'); } catch (error) { C().toast(error.message || t('errorBody'), 'error'); } });
   };
-  Store.Auth = { currentUser: currentUser, isAdmin: isAdmin, login: login, register: register, logout: logout, saveProfile: saveProfile, updatePassword: updatePassword, init: init, adminDemo: ADMIN_DEMO, customerDemo: CUSTOMER_DEMO };
+  Store.Auth = { currentUser: currentUser, isAdmin: isAdmin, login: login, register: register, logout: logout, saveProfile: saveProfile, updatePassword: updatePassword, init: init, };
 })(window.Store);
