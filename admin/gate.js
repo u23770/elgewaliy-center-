@@ -1,7 +1,7 @@
 (function (root, factory) {
   const api = factory(root);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  if (root && root.Store) root.Store.AdminGate = api;
+  if (root) { root.Store = root.Store || {}; root.Store.AdminGate = api; }
   if (root && root.document) api.initPage();
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
   const ADMIN_CODE_HASH = 'f51362d824786cefd69239558b4002f60be7914ba52bcf5a68b72ce0004c2ba7';
