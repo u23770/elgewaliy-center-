@@ -190,4 +190,11 @@
     return true;
   }
   Store.AdminSite = { render: render };
+  const baseAdminRender = Store.Admin && Store.Admin.render;
+  if (baseAdminRender) {
+    Store.Admin.render = async function(page, root) {
+      if (await render(page, root)) return;
+      return baseAdminRender(page, root);
+    };
+  }
 })(window.Store);
