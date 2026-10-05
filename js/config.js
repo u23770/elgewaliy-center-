@@ -3,8 +3,7 @@ window.CEG_CONFIG = window.CEG_CONFIG || {
   dataMode: 'supabase',
   supabaseUrl: 'https://vgnkudgahtrtwpbscnhr.supabase.co',
   supabaseAnonKey: 'sb_publishable_H7bTCPkF8lIDHFWPyEvvtw_BfPXjGCN',
-  emailConfirmation: true,
-  allowDemoFallback: false
+  emailConfirmation: true
 };
 window.Store = window.Store || {};
 Object.assign(window.Store, {
