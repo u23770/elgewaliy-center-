@@ -59,9 +59,9 @@
           if (!best || score > best.score) best = { header, score };
           return;
         }
-        const fuzzyIndex = aliases.findIndex((alias) => alias && (key.includes(alias) || alias.includes(key)));
+        const fuzzyIndex = aliases.findIndex((alias) => alias && alias.length >= 4 && key.includes(alias));
         if (fuzzyIndex >= 0) {
-          const score = 100 - fuzzyIndex * 2 - Math.abs(key.length - aliases[fuzzyIndex].length);
+          const score = 100 - fuzzyIndex * 2 + aliases[fuzzyIndex].length - Math.abs(key.length - aliases[fuzzyIndex].length);
           if (!best || score > best.score) best = { header, score };
         }
       });
