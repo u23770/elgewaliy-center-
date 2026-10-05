@@ -87,13 +87,15 @@
   }
 
   function slugify(value) {
-    return String(value == null ? '' : value)
-      .trim()
-      .normalize('NFKD')
+    const raw = String(value == null ? '' : value).trim();
+    const ascii = raw.normalize('NFKD')
       .replace(/\p{M}/gu, '')
       .replace(/[^a-zA-Z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
-      .toLowerCase() || 'product';
+      .toLowerCase();
+    if (ascii) return ascii;
+    const code = Array.from(raw).map((char) => char.codePointAt(0).toString(16)).join('');
+    return 'product-' + (code || Date.now().toString(36)).slice(0, 48);
   }
 
   function valueFrom(row, mapping, key) {
