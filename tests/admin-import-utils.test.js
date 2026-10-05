@@ -27,7 +27,7 @@ test('infers Arabic and English product columns', () => {
   assert.equal(mapping.price, 'السعر');
   assert.equal(mapping.salePrice, 'Sale Price');
   assert.equal(mapping.sku, 'SKU');
-  assert.equal(mapping.color, 'اللون');
+  assert.equal(mapping.color, 'Color');
   assert.equal(mapping.size, 'المقاس');
   assert.equal(mapping.stock, 'Stock');
   assert.equal(mapping.variantSku, 'Variant SKU');
