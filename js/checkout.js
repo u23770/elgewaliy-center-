@@ -22,7 +22,11 @@
   Pages.checkout = async function (root) {
     const data = await Store.Cart.summary();
     const user = Store.Auth.currentUser();
-    const view = Store.view.checkout || (Store.view.checkout = { promoCode: '', promo: null, submitting: false });
+    const view = Store.view.checkout || (Store.view.checkout = { promoCode: '', promo: null, autoPromoDismissed: false, submitting: false });
+    if (!view.promo && !view.promoCode && !view.autoPromoDismissed && Store.repo.validatePromotion) {
+      view.promo = await Store.repo.validatePromotion('', data.subtotal, data.lines);
+      if (view.promo) view.promoCode = '';
+    }
     const sum = summary(data, data.subtotal, view.promo ? view.promo.discount : 0, data.settings);
     if (!data.lines.length) { root.innerHTML = '<div class="page-wrap page-space">' + Store.Products.crumbs([{ label: t('home'), href: Store.url('index.html') }, { label: t('checkout') }]) + C().empty('bag', t('checkoutEmpty'), t('checkoutEmptyBody'), '<a class="button button-primary" href="' + Store.url('shop.html') + '">' + t('continueShopping') + '</a>') + '</div>'; return; }
     const selectedGov = Store.view.checkoutGovernorate || '';
@@ -61,6 +65,6 @@
       if (!promo) { view.promo = null; C().toast(t('promoInvalid'), 'error'); Store.renderCurrent(); return; }
       view.promo = promo; C().toast(t('promoApplied'), 'success'); Store.renderCurrent();
     },
-    removePromotion: function () { const view = Store.view.checkout || {}; view.promo = null; view.promoCode = ''; Store.view.checkout = view; Store.renderCurrent(); }
+    removePromotion: function () { const view = Store.view.checkout || {}; view.promo = null; view.promoCode = ''; view.autoPromoDismissed = true; Store.view.checkout = view; Store.renderCurrent(); }
   };
 })(window.Store);
