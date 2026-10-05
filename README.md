@@ -1,128 +1,104 @@
 # Center El Gowaily — سنتر الجويلي
 
-A bilingual Arabic/English clothing storefront and local admin workspace made with **HTML5, CSS3, and browser-native JavaScript only**. No framework, package manager, compilation step, or server-side runtime is required. The interface uses Egyptian pounds (EGP), supports Arabic RTL and English LTR, and is designed for static hosting.
+Production-ready bilingual Arabic/English clothing storefront with a separate admin workspace.
 
-## Preview and local use
+## Stack
 
-- Open `index.html` in a modern browser, or serve this folder with any static file server. For example, with Python installed: `python3 -m http.server 8000` from this folder, then visit `http://localhost:8000`.
-- This project does not use or require Node.js/npm to run, test, or deploy.
-- The production adapter is `supabase`; catalogue, inventory, customers, orders, settings, and promotions are stored in the live Supabase project. The repository still contains an isolated `demo` adapter for development only and it is not the production data source.
-- To clear the preview data, remove local-storage keys beginning `ceg-static-` (and `ceg-static-newsletter`) for this site.
+- HTML5, CSS3 and browser-native JavaScript.
+- Supabase for catalog, inventory, customers, orders, site configuration, delivery zones, drivers, promotions and media metadata.
+- Supabase Storage for uploaded media.
+- Static hosting on Vercel, GitHub Pages or Netlify. No framework or build step is required.
 
-### Local development demo sign-ins
+## Storefront
 
-**Admin** (`/admin/login.html`)
+Customers can browse products and variants, add items to the cart, choose a delivery zone/sub-zone, enter delivery details, provide a Google Maps location link, select cash or card on delivery, apply eligible promotion codes, place an order, track an order, and view their order history.
 
-```text
-Email:    admin@centerelgowaily.demo
-Password: CenterDemo!2026
-```
+Order totals are verified by the Supabase database when the order is created. Product/variant prices, stock, promotions and delivery fees are not trusted from the browser.
 
-**Customer** (`/login.html`)
+## Admin
 
-```text
-Email:    customer@centerelgowaily.demo
-Password: CustomerDemo!2026
-```
+Open /admin/login.html and enter the configured administration access code.
 
-These are intentionally public preview credentials. Demo-mode authentication and localStorage are **not production security**. Do not use demo mode to operate a live store or hold real customer data.
+The admin workspace includes:
 
-## Customer features
+- Dashboard and order management.
+- Website design/customizer.
+- Website content and homepage section ordering.
+- Media library and brand assets.
+- Products, categories, sizes, colours, variants and inventory.
+- Spreadsheet import for products.
+- Delivery zones and sub-zones.
+- Driver management.
+- Delivery operations and order assignment.
+- Discounts and coupons.
+- Banners, gallery, reviews and social links.
+- Store and delivery settings.
 
-- Home campaign, dynamic category collections, product cards, search, category/size/colour/price/availability/sale filters, and sorting.
-- Product detail gallery with size and colour selection, variant-aware price/stock, sold-out combinations disabled, quantity control, and related pieces.
-- Persistent cart and accessible slide-in bag drawer, quantity validation, subtotal, delivery fee, free-delivery threshold, and EGP total.
-- Checkout with customer details, Egyptian governorates, address, delivery notes, cash/card on delivery, promotion validation, authoritative server-side pricing/stock/discount calculation, order confirmation, phone-and-order-number tracking, status timeline, and customer order history.
-- Registration, sign-in, profile editing, password-reset request, and session persistence.
-- Arabic/English switching updates the document language/direction and preserves form input, product selections, cart, and signed-in state.
-- Empty/error/loading feedback, accessible form labels and buttons, toast notifications, keyboard Escape handling, focus-visible styling, and responsive layouts.
+Admin access uses a short-lived server-side session created by the admin_start_session RPC. The raw access code is not stored in browser storage.
 
-## Admin features
+## Brand assets
 
-- Dashboard with order/revenue/product/customer summaries and low-stock visibility.
-- Product CRUD with English/Arabic names and descriptions, category, SKU, image URL list, price/sale price, active/featured flags, simple-stock products, and generated/editable variant combinations (size only, colour only, or size + colour).
-- Category CRUD, size and colour catalogs, per-variant/simple-product inventory editing, order status updates and detail view, customer list, promotion CRUD, and delivery/store settings.
-- Statuses used throughout: `pending`, `confirmed`, `preparing`, `out_for_delivery`, `delivered`, and `cancelled`.
-- Production admin screens show a live-store status indicator. The local-demo indicator appears only when the isolated demo adapter is explicitly enabled.
+Put the official logo in:
+
+assets/brand/logo.png
+
+Then set the logo path from Website → Customizer to assets/brand/logo.png.
 
 ## Project structure
 
-```text
-index.html, shop.html, categories.html, product.html, search.html
-cart.html, checkout.html, order-success.html, track.html
-login.html, register.html, forgot-password.html, profile.html, orders.html
-about.html, help.html, 404.html
 admin/
-  index.html, login.html, products.html, categories.html, inventory.html
-  attributes.html, orders.html, customers.html, promotions.html, settings.html
-css/
-  style.css       # Tokens, shared components, storefront and customer pages
-  responsive.css  # Mobile-first breakpoints and reduced-motion support
-  admin.css       # Responsive admin workspace and editor dialogs
-js/
-  config.js       # Static-site mode and public Supabase browser config
-  demo-data.js    # Isolated local sample catalogue and settings
-  storage.js      # Safe localStorage wrapper and persisted session/cart/locale
-  i18n.js         # Arabic and English dictionaries, locale and direction
-  supabase.js     # Dependency-free Supabase REST/Auth/Storage client
-  repository.js   # Demo adapter and optional Supabase REST/RPC adapter
-  components.js   # Shared header, footer, product card, modal, toast, formatters
-  products.js     # Home, shop, search, categories, product detail
-  cart.js, checkout.js, auth.js, orders.js, admin.js, app.js
+  index.html, login.html
+  customizer.html, content.html, media.html, sections.html
+  banners.html, gallery.html, socials.html
+  zones.html, deliveries.html, drivers.html, reviews.html
+  products.html, categories.html, inventory.html, attributes.html
+  orders.html, customers.html, promotions.html, settings.html
+
 assets/
-  images/         # Locally bundled campaign and fashion imagery + fallback
-  icon.svg
-supabase/schema.sql
-.env.example
-site.webmanifest
-.nojekyll
-```
+  brand/
+  images/
 
-HTML pages load ordinary deferred scripts in a known order. They can be opened directly with `file://` for the local demo; the optional Supabase API requires an HTTPS static host or localhost.
+css/
+  style.css
+  responsive.css
+  admin.css
 
-## Static hosting
+js/
+  app.js
+  admin.js
+  admin-site-builder.js
+  checkout.js
+  order-print.js
+  products.js
+  repository.js
+  site-config-utils.js
+  remote-mappers.js
+  ...
 
-Upload this folder as the site root on GitHub Pages, Netlify, or Vercel. All page, CSS, image, and script paths are relative to each page, so GitHub Pages project subpaths work without root-domain rewrites. `404.html` is included for static hosts that use a 404 document. There is no build command or dependency install.
+supabase/
+  schema.sql
 
-## Supabase-ready data layer
+## Supabase
 
-`js/config.js` is configured for the live Supabase backend. The browser contains only the public publishable key. Never place a service-role key or private credential in the repository.
+The browser uses only the public publishable/anon key. Do not place a service-role or other secret key in the repository.
 
-```js
-window.CEG_CONFIG = {
-  dataMode: 'supabase',
-  supabaseUrl: 'https://YOUR_PROJECT.supabase.co',
-  supabaseAnonKey: 'YOUR_PUBLIC_ANON_KEY',
-  emailConfirmation: true
-};
-```
+The live Supabase project contains the production schema and migrations. The tracked supabase/schema.sql file is a reference starter schema; deployed migrations are the source of truth for the live database.
 
-1. Create a Supabase project and apply `supabase/schema.sql` in its SQL Editor.
-2. Set the Supabase Auth Site URL to the deployed site and allow the deployed `login.html` and `forgot-password.html` URLs as redirects. Add your local preview URLs while testing.
-3. Register and verify the account that will administer the store. Promote it once in the SQL Editor:
+Before taking real orders, verify:
 
-   ```sql
-   update public.profiles
-   set role = 'admin'
-   where email = 'your-admin@example.com';
-   ```
+1. The production Supabase project is configured and reachable.
+2. The correct admin access token/code is enabled.
+3. Delivery zones and sub-zones are added from the admin workspace.
+4. Drivers are added from the admin workspace.
+5. The official logo is uploaded to assets/brand/logo.png.
+6. Store contact information and website content are updated from the admin workspace.
+7. Vercel is connected to the main branch.
+8. The production order flow has been tested from product selection through printing.
 
-4. Create your categories/products from the admin workspace. Supabase reads and writes go through `js/repository.js` and `js/supabase.js`; RLS and the database role, not hidden links in JavaScript, are the security boundary.
+## Tests
 
-`.env.example` documents the public deployment settings, but static hosting does not automatically load `.env`; copy the project URL and **anon/public key** into `js/config.js` or use a static host’s build-free placeholder replacement. Supabase anon/publishable keys are browser-visible by design. **Never add `service_role`, passwords, or another private server secret to this folder.**
+Tests use Node's built-in test runner. Run:
 
-The live adapter uses Supabase Auth REST endpoints, PostgREST, and protected database RPCs without loading a third-party SDK. Checkout sends product/variant IDs, quantities, and an optional promotion code to `place_order`; the SQL function reloads current prices, locks/checks stock, calculates eligible discounts and delivery, increments promotion usage atomically, and saves the order. Guest tracking uses the phone-verified `track_order` RPC. Public storefront reads are limited to active catalogue rows; production admin operations use code-authorized RPCs.
+node --test tests/*.test.js
 
-`supabase/schema.sql` is retained as a historical starter schema. The live project uses a newer additive schema and production RPC set; the Supabase project migration history remains the source of truth for the deployed database.
-
-## Integration boundaries and production operations
-
-- All pages use `Store.repo` from `js/repository.js`; sample products/orders are never embedded in page components.
-- `js/demo-data.js` contains the local catalogue seed. The local adapter persists orders only after a user completes checkout.
-- `js/supabase.js` uses only the configured public anon key; RLS policies in `supabase/schema.sql` are authoritative.
-- Payment gateway, courier API, SMS/transactional email and similar external services are not enabled by this build. Checkout currently supports cash/card on delivery. Add and verify those integrations before promising them to customers.
-- Configure Supabase Auth email delivery, privacy/retention, delivery policy, catalogue imagery rights, backups, monitoring, and production domain redirects before taking real orders.
-
-## Validation completed
-
-The project has production-oriented unit coverage for promotion rules, spreadsheet import, admin access storage, live-schema mapping and variant identity preservation, plus JavaScript syntax checks in CI. The live Supabase project has also been smoke-tested for catalogue reads, product details, admin snapshot access, protected admin denial with a wrong code, and an authoritative checkout transaction rolled back after validation.
+The suite covers admin access, product/variant normalization, promotions, spreadsheet import and live-schema mapping.
