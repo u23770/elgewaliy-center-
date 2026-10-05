@@ -9,7 +9,7 @@
   function adminLink(file) { return Store.url('admin/' + file + '.html'); }
   function adminNav(active) {
     const nav = [
-      ['index', 'dashboard', '▦'], ['products', 'adminProducts', '□'], ['categories', 'adminCategories', '◇'], ['inventory', 'inventory', '▤'], ['attributes', 'attributes', '◈'], ['orders', 'adminOrders', '▣'], ['customers', 'customers', '♙'], ['promotions', 'promotions', '✳'], ['settings', 'settings', '⚙']
+      ['index', 'dashboard', '▦'], ['products', 'adminProducts', '□'], ['categories', 'adminCategories', '◇'], ['inventory', 'inventory', '▤'], ['attributes', 'attributes', '◈'], ['customizer', 'websiteCustomizer', '✦'], ['content', 'websiteContent', '✎'], ['media', 'mediaLibrary', '▣'], ['sections', 'homepageSections', '≡'], ['banners', 'banners', '▰'], ['gallery', 'gallery', '▤'], ['socials', 'socialLinks', '◎'], ['orders', 'adminOrders', '▣'], ['zones', 'deliveryZones', '⌖'], ['deliveries', 'deliveries', '⇢'], ['drivers', 'drivers', '♢'], ['customers', 'customers', '♙'], ['reviews', 'reviews', '★'], ['promotions', 'promotions', '✳'], ['settings', 'settings', '⚙']
     ];
     return nav.map(function (item) { return '<a class="admin-nav-link ' + (active === item[0] ? 'active' : '') + '" href="' + adminLink(item[0]) + '"><span class="admin-nav-icon" aria-hidden="true">' + item[2] + '</span><span>' + t(item[1]) + '</span><i></i></a>'; }).join('');
   }
@@ -284,5 +284,5 @@
     const form = document.getElementById('settings-form'); if (!form) return;
     form.addEventListener('submit', async function (event) { event.preventDefault(); if (!form.reportValidity()) return; const values = new FormData(form); const settings = await Store.repo.getSettings(); settings.phone = values.get('phone'); settings.email = values.get('email'); settings.address = { en: values.get('addressEn'), ar: values.get('addressAr') }; settings.deliveryFee = Number(values.get('deliveryFee') || 0); settings.freeDeliveryThreshold = Number(values.get('freeDeliveryThreshold') || 0); settings.lowStockThreshold = Number(values.get('lowStockThreshold') || 0); settings.deliveryNote = { en: values.get('deliveryNoteEn'), ar: values.get('deliveryNoteAr') }; try { await Store.repo.saveSettings(settings); C().toast(t('settingsSaved')); } catch (error) { C().toast(error.message || t('errorBody'), 'error'); } });
   }
-  Store.Admin = { render: render, openProductEditor: openProductEditor, openCategoryEditor: openCategoryEditor, openSizeEditor: openSizeEditor, openColorEditor: openColorEditor, openPromotionEditor: openPromotionEditor, modalOrder: modalOrder, closeModal: closeModal, generateVariantRows: generateVariantRows, stockFor: stockFor };
+  Store.Admin = { render: render, shell: shell, openProductEditor: openProductEditor, openCategoryEditor: openCategoryEditor, openSizeEditor: openSizeEditor, openColorEditor: openColorEditor, openPromotionEditor: openPromotionEditor, modalOrder: modalOrder, closeModal: closeModal, generateVariantRows: generateVariantRows, stockFor: stockFor };
 })(window.Store);
