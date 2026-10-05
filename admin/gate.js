@@ -5,49 +5,81 @@
   if (root && root.document) api.initPage();
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
   const ACCESS_KEY = 'ceg-admin-access-v2';
-  const CODE_KEY = 'ceg-admin-code-v2';
+  const TOKEN_KEY = 'ceg-admin-session-v1';
+  const EXPIRES_KEY = 'ceg-admin-session-expires-v1';
+  const FINGERPRINT_KEY = 'ceg-admin-fingerprint-v1';
 
   function normalizeCode(value) {
     return String(value == null ? '' : value).trim().toUpperCase();
   }
 
-  function getStorage(storage) {
+  function storage(storage) {
     if (storage) return storage;
     try { return root.sessionStorage; } catch (_) { return null; }
   }
 
-  function hasAccess(storage) {
-    const target = getStorage(storage);
-    if (!target) return false;
-    try { return target.getItem(ACCESS_KEY) === 'granted' && Boolean(target.getItem(CODE_KEY)); } catch (_) { return false; }
+  function randomToken() {
+    const bytes = new Uint8Array(32);
+    if (root.crypto && root.crypto.getRandomValues) {
+      root.crypto.getRandomValues(bytes);
+      return Array.from(bytes, function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }
+    return String(Date.now()) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
   }
 
-  function currentCode(storage) {
-    const target = getStorage(storage);
-    if (!target) return '';
-    try { return target.getItem(CODE_KEY) || ''; } catch (_) { return ''; }
+  function currentFingerprint(target) {
+    const store = storage(target);
+    if (!store) return '';
+    let value = '';
+    try { value = store.getItem(FINGERPRINT_KEY) || ''; } catch (_) {}
+    if (value.length >= 16) return value;
+    value = randomToken();
+    try { store.setItem(FINGERPRINT_KEY, value); } catch (_) {}
+    return value;
   }
 
-  function grantAccess(code, storage) {
-    const target = getStorage(storage);
-    if (!target) throw new Error('Session storage is unavailable.');
-    target.setItem(ACCESS_KEY, 'granted');
-    target.setItem(CODE_KEY, normalizeCode(code));
-  }
-
-  function revokeAccess(storage) {
-    const target = getStorage(storage);
-    if (!target) return;
+  function hasAccess(target) {
+    const store = storage(target);
+    if (!store) return false;
     try {
-      target.removeItem(ACCESS_KEY);
-      target.removeItem(CODE_KEY);
+      const token = store.getItem(TOKEN_KEY) || '';
+      const expires = Number(store.getItem(EXPIRES_KEY) || 0);
+      if (!token || token.length < 32 || !Number.isFinite(expires) || expires <= Date.now()) {
+        revokeAccess(store);
+        return false;
+      }
+      return store.getItem(ACCESS_KEY) === 'granted';
+    } catch (_) { return false; }
+  }
+
+  function currentToken(target) {
+    const store = storage(target);
+    if (!store) return '';
+    try { return store.getItem(TOKEN_KEY) || ''; } catch (_) { return ''; }
+  }
+
+  function grantAccess(token, expiresAt, target) {
+    const store = storage(target);
+    if (!store) throw new Error('Session storage is unavailable.');
+    store.setItem(ACCESS_KEY, 'granted');
+    store.setItem(TOKEN_KEY, String(token || ''));
+    store.setItem(EXPIRES_KEY, String(new Date(expiresAt).getTime()));
+  }
+
+  function revokeAccess(target) {
+    const store = storage(target);
+    if (!store) return;
+    try {
+      store.removeItem(ACCESS_KEY);
+      store.removeItem(TOKEN_KEY);
+      store.removeItem(EXPIRES_KEY);
     } catch (_) {}
   }
 
   function adminUser() {
     return {
       id: 'admin-code-session',
-      email: 'admin-code@centerelgowaily.local',
+      email: 'admin@centerelgowaily.local',
       fullName: 'Gowaily Admin',
       phone: '',
       role: 'admin'
@@ -68,26 +100,41 @@
     if (root.location) root.location.href = dashboardUrl();
   }
 
-  async function verifyAgainstLiveStore(value) {
+  async function createLiveSession(value) {
     const config = root.CEG_CONFIG || {};
-    if (config.dataMode !== 'supabase') {
-      throw new Error('The live store backend is not configured.');
+    if (config.dataMode !== 'supabase' || !config.supabaseUrl || !config.supabaseAnonKey) {
+      throw new Error(root.document.documentElement.lang === 'ar' ? 'المتجر الحي غير مُعد بشكل صحيح.' : 'The live store backend is not configured.');
     }
-    if (!config.supabaseUrl || !config.supabaseAnonKey) {
-      throw new Error('The live store backend is not configured.');
-    }
-    const response = await root.fetch(String(config.supabaseUrl).replace(/\/$/, '') + '/rest/v1/rpc/is_valid_admin_code', {
+
+    const sessionToken = randomToken();
+    const fingerprint = currentFingerprint();
+
+    const response = await root.fetch(String(config.supabaseUrl).replace(/\/$/, '') + '/rest/v1/rpc/admin_start_session', {
       method: 'POST',
       headers: {
         apikey: config.supabaseAnonKey,
         Authorization: 'Bearer ' + config.supabaseAnonKey,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ p_code: normalizeCode(value) })
+      body: JSON.stringify({
+        p_admin_code: normalizeCode(value),
+        p_session_token: sessionToken,
+        p_fingerprint: fingerprint
+      })
     });
-    if (!response.ok) throw new Error('Unable to reach the admin security service.');
+
     const raw = await response.text();
-    try { return Boolean(JSON.parse(raw)); } catch (_) { return raw === 'true'; }
+    let payload = null;
+    try { payload = raw ? JSON.parse(raw) : null; } catch (_) {}
+
+    if (!response.ok) {
+      throw new Error((payload && (payload.message || payload.error)) || (root.document.documentElement.lang === 'ar' ? 'تعذر التحقق من كود الإدارة.' : 'Unable to verify the admin access code.'));
+    }
+
+    return {
+      token: sessionToken,
+      expiresAt: payload && payload.expires_at ? payload.expires_at : new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
+    };
   }
 
   function handleLogin(form) {
@@ -98,9 +145,8 @@
     const submit = form.querySelector('button[type="submit"]');
     if (submit) submit.disabled = true;
 
-    verifyAgainstLiveStore(value).then(function (valid) {
-      if (!valid) throw new Error(root.document.documentElement.lang === 'ar' ? 'كود الإدارة غير صحيح.' : 'Invalid admin access code.');
-      grantAccess(value);
+    createLiveSession(value).then(function (session) {
+      grantAccess(session.token, session.expiresAt);
       openDashboard();
     }).catch(function (reason) {
       if (error) {
@@ -137,14 +183,14 @@
 
   return {
     ACCESS_KEY: ACCESS_KEY,
-    CODE_KEY: CODE_KEY,
-    isValidCode: verifyAgainstLiveStore,
+    TOKEN_KEY: TOKEN_KEY,
+    isValidCode: async function () { return false; },
     hasAccess: hasAccess,
-    currentCode: currentCode,
+    currentCode: currentToken,
     grantAccess: grantAccess,
     revokeAccess: revokeAccess,
     adminUser: adminUser,
-    adminCode: function () { return currentCode(); },
+    adminCode: function () { return currentToken(); },
     openDashboard: openDashboard,
     initPage: initPage
   };
