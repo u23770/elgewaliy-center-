@@ -57,7 +57,7 @@
       const input = document.getElementById('promo-code'); const subtotal = (await Store.Cart.summary()).subtotal;
       const view = Store.view.checkout || (Store.view.checkout = { promoCode: '', promo: null, submitting: false });
       view.promoCode = input ? input.value.trim().toUpperCase() : '';
-      const promo = await Store.repo.validatePromotion(view.promoCode, subtotal);
+      const promo = await Store.repo.validatePromotion(view.promoCode, subtotal, (await Store.Cart.summary()).lines);
       if (!promo) { view.promo = null; C().toast(t('promoInvalid'), 'error'); Store.renderCurrent(); return; }
       view.promo = promo; C().toast(t('promoApplied'), 'success'); Store.renderCurrent();
     },
