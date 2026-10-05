@@ -1,4 +1,5 @@
 import "./globals.css";
+import PwaRegister from "@/app/components/pwa-register";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,7 +10,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#fffaf5" />
         <meta name="description" content="الجويلي — متجر ملابس أونلاين" />
       </head>
-      <body>{children}</body>
+      <body><PwaRegister />{children}</body>
     </html>
   );
 }

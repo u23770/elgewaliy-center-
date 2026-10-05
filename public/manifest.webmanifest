@@ -1,0 +1,11 @@
+{
+  "name":"Elgewaliy Fashion Center",
+  "short_name":"Elgewaliy",
+  "start_url":"/",
+  "display":"standalone",
+  "background_color":"#fffaf5",
+  "theme_color":"#d97706",
+  "lang":"ar",
+  "dir":"rtl",
+  "icons":[{"src":"/brand.svg","sizes":"any","type":"image/svg+xml"}]
+}

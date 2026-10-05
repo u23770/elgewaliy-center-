@@ -115,6 +115,7 @@ export default function Home() {
   const count = cartCount(cart);
   const hero = products[0] ?? fallbackProducts[0];
   const heroImage = getProductImage(hero.slug, images[hero.id] ?? []);
+  const galleryImages = useMemo(() => Object.values(images).flat().sort((a,b) => a.sort_order - b.sort_order).slice(0, 12), [images]);
 
   function openProduct(product: Product) {
     const list = variants[product.id] ?? [];
@@ -169,10 +170,10 @@ export default function Home() {
       <header className="site-header">
         <div className="nav-shell">
           <a href="#" className="brand" onClick={() => setMobileOpen(false)}><span className="brand-mark">ج</span><span><strong>الجويلي</strong><small>ELGEWALIY FASHION CENTER</small></span></a>
-          <nav className="desktop-nav"><a href="#catalog">التشكيلة</a><a href="#experience">تجربة الشراء</a><a href="/track">تتبع الطلب</a></nav>
+          <nav className="desktop-nav"><a href="#catalog">التشكيلة</a><a href="#gallery">صور</a><a href="#experience">تجربة الشراء</a><a href="/track">تتبع الطلب</a></nav>
           <div className="nav-actions"><a className="icon-button account" href="/auth" aria-label="حسابي"><Icon name="user" /></a><button className={"icon-button cart " + (added ? "bump" : "")} onClick={() => setCartOpen(true)} aria-label="السلة"><Icon name="bag" />{count ? <span className="cart-badge">{count}</span> : null}</button><button className="icon-button menu-toggle" onClick={() => setMobileOpen((v) => !v)} aria-label="القائمة"><Icon name={mobileOpen ? "close" : "menu"} /></button></div>
         </div>
-        {mobileOpen && <div className="mobile-nav"><a href="#catalog" onClick={() => setMobileOpen(false)}>التشكيلة</a><a href="#experience" onClick={() => setMobileOpen(false)}>تجربة الشراء</a><a href="/track">تتبع الطلب</a><a href="/auth">حسابي</a></div>}
+        {mobileOpen && <div className="mobile-nav"><a href="#catalog" onClick={() => setMobileOpen(false)}>التشكيلة</a><a href="#gallery" onClick={() => setMobileOpen(false)}>صور</a><a href="#experience" onClick={() => setMobileOpen(false)}>تجربة الشراء</a><a href="/track">تتبع الطلب</a><a href="/auth">حسابي</a></div>}
       </header>
 
       <section className="hero">
@@ -225,6 +226,12 @@ export default function Home() {
             </article>;
           })}
         </div> : <div className="empty"><Icon name="search" size={30} /><h3>مش لاقيين القطعة دي</h3><p>جرّب بحث تاني أو ارجع لكل التشكيلة.</p><button onClick={() => { setQuery(""); setCategory("all"); }}>رجوع للتشكيلة</button></div>}
+      </section>
+
+
+      <section id="gallery" className="gallery-section">
+        <div className="gallery-head"><div><span className="label">LOOKBOOK / 02</span><h2>صور من التشكيلة</h2><p>اختار صورة وشوف القطع المعروضة من زوايا مختلفة.</p></div><a href="#catalog">كل المنتجات ←</a></div>
+        {galleryImages.length ? <div className="gallery-grid">{galleryImages.map((img,index)=><a className={"gallery-tile tile-"+(index%4)} href={img.url} target="_blank" rel="noreferrer" key={img.id}><img src={img.url} alt={img.alt_ar || img.alt_en || "صورة من الجويلي"} loading="lazy" decoding="async"/><span>0{index+1}</span></a>)}</div> : <div className="gallery-empty">صور المنتجات هتظهر هنا بعد إضافتها من لوحة الإدارة.</div>}
       </section>
 
       <section id="experience" className="experience">
