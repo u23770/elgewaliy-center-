@@ -9,6 +9,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <meta name="theme-color" content="#fffaf5" />
         <meta name="description" content="الجويلي — متجر ملابس أونلاين" />
+        <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body><PwaRegister />{children}</body>
     </html>
