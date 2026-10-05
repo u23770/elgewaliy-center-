@@ -78,7 +78,7 @@
     } catch (_) {}
     if (token && root && root.fetch) {
       const config = root.CEG_CONFIG || {};
-      root.fetch(String(config.supabaseUrl || '').replace(/\\/$/, '') + '/rest/v1/rpc/admin_revoke_session', {
+      root.fetch(String(config.supabaseUrl || '').replace(/\/$/, '') + '/rest/v1/rpc/admin_revoke_session', {
         method: 'POST',
         headers: {
           apikey: config.supabaseAnonKey || '',
