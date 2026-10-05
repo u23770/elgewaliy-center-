@@ -1,5 +1,6 @@
 (function (Store) {
   const t = function (key, params) { return Store.i18n.t(key, params); };
+  const tx = function (en, ar) { return Store.i18n.locale === 'ar' ? ar : en; };
   const C = function () { return Store.Components; };
   const esc = function (value) { return Store.escape(value); };
   const loc = function (value) { return Store.i18n.localized(value); };
