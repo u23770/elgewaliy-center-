@@ -10,6 +10,24 @@
   function effectivePrice(product, variant) { return Number(variant && variant.price || product.salePrice || product.price || 0); }
   function availableStock(product, variant) { return variant ? Math.max(0, Number(variant.stock || 0)) : Math.max(0, Number(product.stock || 0)); }
   function normalizePhone(value) { return String(value || '').replace(/\D/g, '').slice(-10); }
+  function adminCode() { return Store.AdminGate && Store.AdminGate.ADMIN_CODE ? Store.AdminGate.ADMIN_CODE : ''; }
+  let adminSnapshotCache = null;
+  async function adminSnapshot() {
+    const code = adminCode();
+    if (!code) throw new Error('Admin access code is required.');
+    if (adminSnapshotCache) return adminSnapshotCache;
+    adminSnapshotCache = await Store.supabase.rpc('admin_snapshot', { p_admin_code: code });
+    return adminSnapshotCache;
+  }
+  function clearAdminSnapshot() { adminSnapshotCache = null; }
+  function rpcAdmin(name, body) {
+    const code = adminCode();
+    if (!code) return Promise.reject(new Error('Admin access code is required.'));
+    return Store.supabase.rpc(name, Object.assign({ p_admin_code: code }, body || {})).then(function (result) {
+      clearAdminSnapshot();
+      return result;
+    });
+  }
   function mapCategory(row) { return { id: row.id, slug: row.slug, name: { en: row.name_en, ar: row.name_ar }, description: { en: row.description_en || '', ar: row.description_ar || '' }, image: row.image_url || '', parentId: row.parent_id || '', active: row.is_active !== false, order: row.sort_order || 0 }; }
   function mapProduct(row) { return remoteMappers ? remoteMappers.mapRemoteProduct(row) : { id: row.id, slug: row.slug, name: { en: row.name_en, ar: row.name_ar }, description: { en: row.description_en || '', ar: row.description_ar || '' }, categoryId: row.category_id || '', images: (row.product_images || []).map(function (image) { return image.url || image.image_url; }), price: Number(row.price), salePrice: row.sale_price == null ? null : Number(row.sale_price), sku: row.sku || '', active: row.is_active !== false, featured: Boolean(row.is_featured), stock: Number(row.stock_quantity || 0), variants: (row.product_variants || []).map(function (variant) { return { id: variant.id, sku: variant.sku || '', size: variant.size || variant.size_label || '', color: variant.color ? { key: String(variant.color).toLowerCase().replace(/\s+/g,'-'), name: { en: variant.color, ar: variant.color }, hex: '#777e60' } : null, stock: Number(variant.stock || 0), price: variant.price_override == null ? null : Number(variant.price_override), active: variant.is_active !== false }; }) }; }
   function mapPromotion(row) { return remoteMappers ? remoteMappers.mapRemotePromotion(row) : { id: row.id, code: row.code || '', title: { en: row.title_en, ar: row.title_ar }, type: row.discount_type === 'percentage' ? 'percentage' : 'fixed', value: Number(row.discount_value), scope: row.scope || 'global', targetIds: Array.isArray(row.target_ids) ? row.target_ids : [], minOrder: Number(row.min_order_amount || 0), maxDiscount: row.max_discount == null ? null : Number(row.max_discount), usageLimit: row.usage_limit == null ? null : Number(row.usage_limit), usedCount: Number(row.used_count || 0), priority: Number(row.priority || 0), active: row.is_active !== false, startsAt: row.starts_at || '', endsAt: row.ends_at || '' }; }
