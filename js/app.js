@@ -2,7 +2,7 @@
   const t = function (key, params) { return Store.i18n.t(key, params); };
   const C = function () { return Store.Components; };
   const esc = function (value) { return Store.escape(value); };
-  const adminPages = ['admin-dashboard', 'admin-products', 'admin-categories', 'admin-inventory', 'admin-attributes', 'admin-orders', 'admin-customers', 'admin-promotions', 'admin-settings'];
+  const adminPages = ['admin-dashboard', 'admin-products', 'admin-categories', 'admin-inventory', 'admin-attributes', 'admin-customizer', 'admin-content', 'admin-media', 'admin-sections', 'admin-banners', 'admin-gallery', 'admin-socials', 'admin-orders', 'admin-zones', 'admin-deliveries', 'admin-drivers', 'admin-customers', 'admin-reviews', 'admin-promotions', 'admin-settings'];
   const renderers = {
     home: Store.Pages.home, shop: Store.Pages.shop, search: Store.Pages.search, categories: Store.Pages.categories, product: Store.Pages.product,
     cart: Store.Cart.renderPage, checkout: Store.Pages.checkout, 'order-success': Store.Pages.orderSuccess, login: Store.Pages.login,
@@ -11,7 +11,7 @@
     'admin-login': Store.Pages.login
   };
   function titleFor(page) {
-    const map = { home: t('brand') + ' | Cairo', shop: t('shop'), search: t('searchResults'), categories: t('categories'), product: t('productDetails'), cart: t('bag'), checkout: t('checkout'), 'order-success': t('orderConfirmed'), login: t('signIn'), register: t('register'), forgot: t('resetTitle'), profile: t('profileTitle'), orders: t('orders'), track: t('trackTitle'), about: t('about'), help: t('help'), 'admin-login': t('adminLogin'), 'admin-dashboard': t('dashboard'), 'admin-products': t('adminProducts'), 'admin-categories': t('adminCategories'), 'admin-inventory': t('inventory'), 'admin-attributes': t('attributes'), 'admin-orders': t('adminOrders'), 'admin-customers': t('customers'), 'admin-promotions': t('promotions'), 'admin-settings': t('settings') };
+    const map = { home: t('brand') + ' | Cairo', shop: t('shop'), search: t('searchResults'), categories: t('categories'), product: t('productDetails'), cart: t('bag'), checkout: t('checkout'), 'order-success': t('orderConfirmed'), login: t('signIn'), register: t('register'), forgot: t('resetTitle'), profile: t('profileTitle'), orders: t('orders'), track: t('trackTitle'), about: t('about'), help: t('help'), 'admin-login': t('adminLogin'), 'admin-dashboard': t('dashboard'), 'admin-products': t('adminProducts'), 'admin-categories': t('adminCategories'), 'admin-inventory': t('inventory'), 'admin-attributes': t('attributes'), 'admin-customizer': t('websiteCustomizer'), 'admin-content': t('websiteContent'), 'admin-media': t('mediaLibrary'), 'admin-sections': t('homepageSections'), 'admin-banners': t('banners'), 'admin-gallery': t('gallery'), 'admin-socials': t('socialLinks'), 'admin-orders': t('adminOrders'), 'admin-zones': t('deliveryZones'), 'admin-deliveries': t('deliveries'), 'admin-drivers': t('drivers'), 'admin-customers': t('customers'), 'admin-reviews': t('reviews'), 'admin-promotions': t('promotions'), 'admin-settings': t('settings') };
     return (map[page] || t('brand')) + ' — ' + t('brand');
   }
   function captureFormState() {
@@ -107,7 +107,7 @@
     if (action === 'apply-promo') { await Store.Checkout.applyPromotion(); return; }
     if (action === 'remove-promo') { Store.Checkout.removePromotion(); return; }
     if (action === 'sign-out') { if (document.body.dataset.page && document.body.dataset.page.startsWith('admin-')) { if (Store.AdminGate) Store.AdminGate.revokeAccess(); window.location.replace(Store.url('admin/login.html')); } else { await Store.Auth.logout(); window.location.href = Store.url('index.html'); } return; }
-    if (action === 'fill-demo') { const form = document.getElementById('login-form'); if (!form) return; const creds = actionNode.dataset.demo === 'admin' ? Store.Auth.adminDemo : Store.Auth.customerDemo; form.elements.email.value = creds.email; form.elements.password.value = creds.password; return; }
+    if (action === 'fill-demo') { return; }
     if (action === 'admin-menu-open') { setAdminMenu(true); return; }
     if (action === 'admin-menu-close') { setAdminMenu(false); return; }
     if (action === 'add-product' || action === 'edit-product') { const categories = await Store.repo.listCategories(true); const sizes = await Store.repo.listSizes(); const colors = await Store.repo.listColors(); let product = null; if (action === 'edit-product') product = await Store.repo.getProduct(actionNode.dataset.id, true); Store.Admin.openProductEditor(product, categories, sizes, colors); return; }
