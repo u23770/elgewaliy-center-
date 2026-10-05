@@ -44,6 +44,13 @@
         image: 'assets/images/look-women.jpg',
         cta: { en: 'Read our story', ar: 'اقرأ حكايتنا' }
       },
+      sectionTitles: {
+        categories: { en: 'Shop by category', ar: 'تسوق حسب القسم' },
+        featured: { en: 'Featured pieces', ar: 'قطع مختارة' },
+        new: { en: 'New arrivals', ar: 'وصل حديثًا' },
+        banners: { en: 'Store updates', ar: 'أحدث عروض المتجر' },
+        gallery: { en: 'From Center El Gowaily', ar: 'من سنتر الجويلي' }
+      },
       sections: {
         hero: { visible: true, order: 1 },
         promise: { visible: true, order: 2 },
@@ -159,6 +166,18 @@
     return normalizeSiteConfig(deepMerge(DEFAULTS, patch || {}));
   }
 
+  function themeCssVariables(config) {
+    const colors = (config && config.theme && config.theme.colors) || DEFAULTS.theme.colors;
+    return {
+      '--color-primary': normalizeHexColor(colors.primary, DEFAULTS.theme.colors.primary),
+      '--color-secondary': normalizeHexColor(colors.secondary, DEFAULTS.theme.colors.secondary),
+      '--color-accent': normalizeHexColor(colors.accent, DEFAULTS.theme.colors.accent),
+      '--color-background': normalizeHexColor(colors.background, DEFAULTS.theme.colors.background),
+      '--color-section-background': normalizeHexColor(colors.sectionBackground, DEFAULTS.theme.colors.sectionBackground),
+      '--color-card-background': normalizeHexColor(colors.cardBackground, DEFAULTS.theme.colors.cardBackground),
+      '--color-border': normalizeHexColor(colors.border, DEFAULTS.theme.colors.border)
+    };
+  }
   function orderedVisibleSections(sections) {
     return Object.keys(sections || {}).filter(function (key) {
       return sections[key] && sections[key].visible !== false;
@@ -173,6 +192,7 @@
     normalizeHexColor,
     normalizeSiteConfig,
     mergeSiteConfig,
+    themeCssVariables,
     orderedVisibleSections
   };
 });
