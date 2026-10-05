@@ -1,6 +1,6 @@
 # Center El Gowaily
 
-Production-ready bilingual clothing storefront for Center El Gowaily.
+Production-ready bilingual clothing storefront for Center El Gowaily.\n\nThe active release is intended for real store operation; sample catalogue records are not published.
 
 ## Live architecture
 
