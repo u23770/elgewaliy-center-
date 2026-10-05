@@ -91,12 +91,23 @@
     listPromotions: async function () { return currentData().promotions.slice().sort(function (a, b) { return String(a.code).localeCompare(String(b.code)); }); },
     savePromotion: async function (input) { let saved; const code = String(input.code || '').trim().toUpperCase(); if (Number(input.value) <= 0 || input.type === 'percentage' && Number(input.value) > 100) throw new Error('Enter a valid discount.'); if (input.scope !== 'global' && !(input.targetIds || []).length) throw new Error('Select at least one promotion target.'); if (input.endsAt && input.startsAt && new Date(input.endsAt).getTime() <= new Date(input.startsAt).getTime()) throw new Error('Promotion end time must be after the start time.'); if (window.StorePromotionUtils) { saved = window.StorePromotionUtils.normalizePromotion(Object.assign({}, input, { code: code })); } else { saved = Object.assign({}, input, { id: input.id || Store.id(), code: code, value: Number(input.value), active: input.active !== false }); } saveData(function (data) { const id = input.id || saved.id || Store.id(); saved = Object.assign({}, saved, { id: id, code: code, value: Number(input.value), active: input.active !== false }); const index = data.promotions.findIndex(function (item) { return item.id === id; }); if (index >= 0) data.promotions[index] = saved; else data.promotions.push(saved); return data; }); return saved; },
     deletePromotion: async function (id) { saveData(function (data) { data.promotions = data.promotions.filter(function (item) { return item.id !== id; }); return data; }); },
-    validatePromotion: async function (code, subtotal, lines) { const promotions = currentData().promotions || []; if (window.StorePromotionUtils) { const normalized = promotions.map(window.StorePromotionUtils.normalizePromotion); const contextLines = (lines || []).map(function (line) { return { productId: line.product && line.product.id || line.productId, categoryId: line.product && line.product.categoryId || line.categoryId, price: line.price, quantity: line.quantity, lineTotal: line.price * line.quantity }; }); const productIds = contextLines.map(function (line) { return String(line.productId || ''); }).filter(Boolean); const categoryIds = contextLines.map(function (line) { return String(line.categoryId || ''); }).filter(Boolean); const promo = window.StorePromotionUtils.chooseBestPromotion(normalized, { code: code, requireCode: Boolean(String(code || '').trim()), subtotal: Number(subtotal || 0), productIds: productIds, categoryIds: categoryIds, now: new Date() }); if (!promo) return null; const eligible = window.StorePromotionUtils.eligibleSubtotal(promo, contextLines); return { code: promo.code, discount: window.StorePromotionUtils.calculatePromotionDiscount(promo, eligible), title: promo.title, id: promo.id }; } const current = promotions.find(function (item) { return item.code.toUpperCase() === String(code || '').trim().toUpperCase() && item.active; }); if (!current) return null; const now = Date.now(); if (current.startsAt && new Date(current.startsAt).getTime() > now || current.endsAt && new Date(current.endsAt).getTime() < now) return null; const discount = current.type === 'percentage' ? Math.round(Number(subtotal) * Number(current.value) / 100) : Math.min(Number(subtotal), Number(current.value)); return { code: current.code, discount: discount, title: current.title }; },
-    updateInventory: async function (productId, variantId, quantity) { let success = false; saveData(function (data) { const product = data.products.find(function (item) { return item.id === productId; }); if (!product) return data; if (variantId) { const variant = product.variants.find(function (item) { return item.id === variantId; }); if (variant) { variant.stock = Math.max(0, Number(quantity || 0)); success = true; } } else { product.stock = Math.max(0, Number(quantity || 0)); success = true; } return data; }); if (!success) throw new Error('The inventory row could not be found.'); },
-    listOrders: async function () { return currentData().orders.slice().sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); }); },
-    getOrder: async function (key) { return currentData().orders.find(function (order) { return order.id === key || order.orderNumber === key; }) || null; },
-    listCustomerOrders: async function (userId) { return currentData().orders.filter(function (order) { return order.userId === userId; }).sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); }); },
-    trackOrder: async function (orderNumber, phone) { const digits = normalizePhone(phone); return currentData().orders.find(function (order) { return order.orderNumber.toLowerCase() === String(orderNumber || '').trim().toLowerCase() && normalizePhone(order.customer.phone) === digits; }) || null; },
+    validatePromotion: async function (code, subtotal, lines) {
+      const items = (lines || []).map(function (line) {
+        return {
+          product_id: line.product && line.product.id || line.productId,
+          variant_id: line.variantId || line.variant && line.variant.id || null,
+          quantity: Number(line.quantity || 0)
+        };
+      }).filter(function (item) { return item.product_id && item.quantity > 0; });
+      const result = await Store.supabase.rpc('validate_promotion', { p_code: String(code || '').trim().toUpperCase(), p_items: items });
+      if (!result) return null;
+      return {
+        id: result.id,
+        code: result.code || '',
+        title: result.title,
+        discount: Number(result.discount || 0)
+      };
+    },
     createOrder: async function (input) {
       if (!input.items || !input.items.length) throw new Error('Your bag is empty.');
       let created;
