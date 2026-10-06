@@ -16,7 +16,7 @@ test('admin image uploader exposes device-file upload support', () => {
   assert.match(admin, /type="file"/);
   assert.match(admin, /accept="image\/(jpeg|png|webp)/);
   assert.match(admin, /data-admin-image-upload/);
-  assert.match(admin, /AdminImageUpload/);
+  assert.match(admin, /uploadAdminImage/);
 });
 
 test('product editor supports selecting multiple local images and uploads them before save completes', () => {
