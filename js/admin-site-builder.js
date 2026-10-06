@@ -34,7 +34,7 @@
       field('taglineAr','الشعار · العربية',config.identity.tagline.ar) +
       field('announcementEn','Announcement · English',config.identity.announcement.en) +
       field('announcementAr','الإعلان · العربية',config.identity.announcement.ar) +
-      field('heroImage','Hero image path',config.homepage.hero.image) +
+      Store.Admin.imageField('heroImage','Hero image',config.homepage.hero.image) +
       area('heroTitleEn','Hero title · English',config.homepage.hero.title.en) +
       area('heroTitleAr','عنوان الـHero · العربية',config.homepage.hero.title.ar) +
       area('heroBodyEn','Hero text · English',config.homepage.hero.body.en) +
@@ -43,7 +43,7 @@
       field('heroCtaAr','الزر الأساسي · العربية',config.homepage.hero.primaryCta.ar) +
       field('heroSecondaryEn','Secondary link · English',config.homepage.hero.secondaryCta.en) +
       field('heroSecondaryAr','الرابط الثانوي · العربية',config.homepage.hero.secondaryCta.ar) +
-      field('storyImage','Story image path',config.homepage.story.image) +
+      Store.Admin.imageField('storyImage','Story image',config.homepage.story.image) +
       field('promise1En','Promise 1 · English',config.homepage.promise[0].title.en) +
       field('promise1Ar','الوعد 1 · العربية',config.homepage.promise[0].title.ar) +
       field('promise2En','Promise 2 · English',config.homepage.promise[1].title.en) +
@@ -56,8 +56,8 @@
       field('featuredTitleAr','عنوان المختارات · العربية',config.homepage.sectionTitles.featured.ar) +
       field('newTitleEn','New title · English',config.homepage.sectionTitles.new.en) +
       field('newTitleAr','عنوان الجديد · العربية',config.homepage.sectionTitles.new.ar) +
-      field('logoPath','Logo path',config.identity.logoPath || '') +
-      field('faviconPath','Favicon path',config.identity.faviconPath || '') +
+      Store.Admin.imageField('logoPath','Logo',config.identity.logoPath || '') +
+      Store.Admin.imageField('faviconPath','Favicon',config.identity.faviconPath || '') +
       field('primaryColor','Primary color',config.theme.colors.primary,'color') +
       field('secondaryColor','Secondary color',config.theme.colors.secondary,'color') +
       field('accentColor','Accent color',config.theme.colors.accent,'color') +
@@ -76,7 +76,7 @@
       field('aboutEyebrowEn','About eyebrow · English',a.eyebrow.en) + field('aboutEyebrowAr','About eyebrow · العربية',a.eyebrow.ar) +
       field('aboutTitleEn','About title · English',a.title.en) + field('aboutTitleAr','About title · العربية',a.title.ar) +
       area('aboutBodyEn','About copy · English',a.body.en) + area('aboutBodyAr','About copy · العربية',a.body.ar) +
-      field('aboutImage','About image path',a.image) +
+      Store.Admin.imageField('aboutImage','About image',a.image) +
       field('contactAddressEn','Address · English',c.address.en) + field('contactAddressAr','العنوان · العربية',c.address.ar) +
       field('contactPhone','Store phone',c.phone,'tel') + field('contactEmail','Store email',c.email,'email') +
       field('contactWhatsapp','WhatsApp link',c.whatsapp) + field('contactMaps','Maps link',c.mapsUrl) +
@@ -109,7 +109,7 @@
     ];
     const builtHtml=builtIns.map(function(item){return '<button type="button" class="quick-action" data-media-pick="' + esc(item[1]) + '"><i>＋</i><span>' + esc(item[0]) + '</span><small>' + esc(item[1]) + '</small></button>';}).join('');
     const cards=(items||[]).map(function(m){return '<article class="admin-panel"><div class="admin-product-cell"><img src="' + Store.asset(Store.safeImage(m.url)) + '" alt="' + esc(loc(m.alt)) + '"><div><strong>' + esc(m.name) + '</strong><small>' + esc(m.url) + '</small></div></div><div class="admin-row-actions"><button class="button button-outline button-small" type="button" data-media-edit="' + esc(m.id) + '">' + t('edit') + '</button><button class="icon-button danger-icon" type="button" data-media-delete="' + esc(m.id) + '" aria-label="' + t('delete') + '">' + C().icon('trash',15) + '</button></div></article>';}).join('');
-    return Store.Admin.shell('media', t('mediaLibrary'), '<div class="admin-dashboard-grid"><section class="admin-panel"><div class="admin-section-head"><div><span class="eyebrow">' + tx('ADD MEDIA','إضافة وسائط') + '</span><h2>' + tx('Media item','عنصر وسائط') + '</h2></div></div><form id="media-form" class="admin-form-grid"><input type="hidden" name="id" value="">' + field('name','Name','') + field('url','Image URL or asset path','assets/images/hero-editorial.jpg') + field('altEn','Alt · English','') + field('altAr','Alt · العربية','') + '<div class="settings-submit field-wide"><button class="button button-primary" type="submit">' + t('save') + '</button></div></form></section><section class="admin-panel"><div class="admin-section-head"><div><span class="eyebrow">' + tx('BUILT-IN ASSETS','الأصول الموجودة') + '</span><h2>' + tx('Project image library','مكتبة صور المشروع') + '</h2></div></div><div class="admin-stack">' + builtHtml + '</div></section></div><section><div class="admin-section-head"><div><span class="eyebrow">MEDIA</span><h2>' + items.length + '</h2></div></div><div class="admin-dashboard-grid">' + (cards || C().empty('box',tx('No media yet','لا توجد وسائط بعد'))) + '</div></section>');
+    return Store.Admin.shell('media', t('mediaLibrary'), '<div class="admin-dashboard-grid"><section class="admin-panel"><div class="admin-section-head"><div><span class="eyebrow">' + tx('ADD MEDIA','إضافة وسائط') + '</span><h2>' + tx('Media item','عنصر وسائط') + '</h2></div></div><form id="media-form" class="admin-form-grid"><input type="hidden" name="id" value="">' + field('name','Name','') + Store.Admin.imageField('url','Image', 'assets/images/hero-editorial.jpg') + field('altEn','Alt · English','') + field('altAr','Alt · العربية','') + '<div class="settings-submit field-wide"><button class="button button-primary" type="submit">' + t('save') + '</button></div></form></section><section class="admin-panel"><div class="admin-section-head"><div><span class="eyebrow">' + tx('BUILT-IN ASSETS','الأصول الموجودة') + '</span><h2>' + tx('Project image library','مكتبة صور المشروع') + '</h2></div></div><div class="admin-stack">' + builtHtml + '</div></section></div><section><div class="admin-section-head"><div><span class="eyebrow">MEDIA</span><h2>' + items.length + '</h2></div></div><div class="admin-dashboard-grid">' + (cards || C().empty('box',tx('No media yet','لا توجد وسائط بعد'))) + '</div></section>');
   }
 
   function bannerForm(item) {
@@ -118,7 +118,7 @@
       '<input type="hidden" name="id" value="' + esc(item.id) + '">' +
       field('titleEn','Title · English',item.title.en)+field('titleAr','العنوان · العربية',item.title.ar)+
       area('textEn','Text · English',item.text.en)+area('textAr','النص · العربية',item.text.ar)+
-      field('image','Image path or URL',item.image)+field('link','Link URL',item.link)+field('order','Display order',item.order,'number','min="0" step="1"')+
+      Store.Admin.imageField('image','Image',item.image)+field('link','Link URL',item.link)+field('order','Display order',item.order,'number','min="0" step="1"')+
       '<label class="check-row"><input name="active" type="checkbox" ' + (item.active?'checked':'') + '><span>' + t('active') + '</span></label>' +
       '<div class="modal-actions"><button type="button" class="button button-outline" data-action="modal-close">' + t('cancel') + '</button><button class="button button-primary" type="submit">' + t('save') + '</button></div></form>';
   }
@@ -237,6 +237,7 @@
     if(!table[page]) return false;
     root.innerHTML=await table[page]();
     await bind(key);
+    if (Store.Admin && typeof Store.Admin.bindImageUploaders === 'function') Store.Admin.bindImageUploaders(root);
     return true;
   }
   Store.AdminSite = { render: render };
