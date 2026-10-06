@@ -51,7 +51,7 @@
     const categoryOptions = '<option value="">' + t('chooseCategory') + '</option>' + categories.map(function (category) { return '<option value="' + esc(category.id) + '" ' + (item.categoryId === category.id ? 'selected' : '') + '>' + esc(loc(category.name)) + '</option>'; }).join('');
     const sizeOptions = sizes.map(function (size) { return '<label class="option-check"><input type="checkbox" name="variantSizes" value="' + esc(size.label) + '" ' + (chosenSizes.indexOf(size.label) >= 0 ? 'checked' : '') + '><span>' + esc(size.label) + '</span></label>'; }).join('');
     const colorOptions = colors.map(function (color) { return '<label class="option-check color-option-check"><input type="checkbox" name="variantColors" value="' + esc(color.key) + '" ' + (chosenColors.indexOf(color.key) >= 0 ? 'checked' : '') + '><i style="--swatch:' + esc(Store.safeColor(color.hex)) + '"></i><span>' + esc(loc(color.name)) + '</span></label>'; }).join('');
-    const content = '<form id="product-editor-form" class="admin-editor-form"><input type="hidden" name="id" value="' + esc(item.id) + '"><div class="editor-section"><span class="eyebrow">01 · ' + t('productDetails') + '</span><div class="admin-form-grid"><label class="field"><span>' + t('nameEnglish') + '</span><input name="nameEn" required value="' + esc(item.name.en) + '"></label><label class="field"><span>' + t('nameArabic') + '</span><input name="nameAr" required value="' + esc(item.name.ar) + '"></label><label class="field"><span>' + t('descriptionEnglish') + '</span><textarea name="descriptionEn" rows="3">' + esc(item.description.en) + '</textarea></label><label class="field"><span>' + t('descriptionArabic') + '</span><textarea name="descriptionAr" rows="3">' + esc(item.description.ar) + '</textarea></label><label class="field"><span>' + t('categoryLabel') + '</span><select name="categoryId" required>' + categoryOptions + '</select></label><label class="field"><span>' + t('skuLabel') + '</span><input name="sku" required value="' + esc(item.sku) + '"></label><label class="field"><span>' + t('priceLabel') + '</span><input name="price" type="number" min="1" step="1" required value="' + esc(item.price) + '"></label><label class="field"><span>' + t('salePriceLabel') + '</span><input name="salePrice" type="number" min="0" step="1" value="' + esc(item.salePrice == null ? '' : item.salePrice) + '"></label><label class="field field-wide"><span>' + t('imagesLabel') + '</span><textarea name="images" rows="3" placeholder="assets/images/look-tee.jpg">' + esc((item.images || []).join('\n')) + '</textarea></label></div><div class="admin-form-flags"><label class="check-row"><input name="active" type="checkbox" ' + (item.active ? 'checked' : '') + '><span>' + t('productActive') + '</span></label><label class="check-row"><input name="featured" type="checkbox" ' + (item.featured ? 'checked' : '') + '><span>' + t('featuredProduct') + '</span></label></div></div><div class="editor-section"><span class="eyebrow">02 · ' + t('variantMode') + '</span><label class="field"><span>' + t('variantMode') + '</span><select name="variantMode" id="variant-mode"><option value="none" ' + (mode === 'none' ? 'selected' : '') + '>' + t('noVariants') + '</option><option value="size" ' + (mode === 'size' ? 'selected' : '') + '>' + t('sizeOnly') + '</option><option value="color" ' + (mode === 'color' ? 'selected' : '') + '>' + t('colourOnly') + '</option><option value="size-color" ' + (mode === 'size-color' ? 'selected' : '') + '>' + t('sizeAndColour') + '</option></select></label><div id="variant-options" class="variant-options ' + (mode === 'none' ? 'hidden' : '') + '"><div class="variant-option-block ' + (mode === 'color' ? 'hidden' : '') + '" id="size-option-block"><strong>' + t('selectSizes') + '</strong><div class="option-check-list">' + sizeOptions + '</div></div><div class="variant-option-block ' + (mode === 'size' ? 'hidden' : '') + '" id="color-option-block"><strong>' + t('selectColours') + '</strong><div class="option-check-list">' + colorOptions + '</div></div><button class="button button-outline button-small" type="button" data-action="generate-variants">' + t('generateVariants') + '</button><p class="form-hint">' + t('noVariantsWarning') + '</p></div><div id="variant-editor-rows">' + variantRows(variants) + '</div><div class="simple-stock-field ' + (mode !== 'none' ? 'hidden' : '') + '" id="simple-stock-field"><label class="field"><span>' + t('stockLabel') + '</span><input name="stock" type="number" min="0" step="1" value="' + esc(item.stock || 0) + '"></label></div></div><div class="modal-actions editor-actions"><button type="button" class="button button-outline" data-action="modal-close">' + t('cancel') + '</button><button type="submit" class="button button-primary">' + t('save') + C().icon('check', 16) + '</button></div></form>';
+    const content = '<form id="product-editor-form" class="admin-editor-form"><input type="hidden" name="id" value="' + esc(item.id) + '"><div class="editor-section"><span class="eyebrow">01 · ' + t('productDetails') + '</span><div class="admin-form-grid"><label class="field"><span>' + t('nameEnglish') + '</span><input name="nameEn" required value="' + esc(item.name.en) + '"></label><label class="field"><span>' + t('nameArabic') + '</span><input name="nameAr" required value="' + esc(item.name.ar) + '"></label><label class="field"><span>' + t('descriptionEnglish') + '</span><textarea name="descriptionEn" rows="3">' + esc(item.description.en) + '</textarea></label><label class="field"><span>' + t('descriptionArabic') + '</span><textarea name="descriptionAr" rows="3">' + esc(item.description.ar) + '</textarea></label><label class="field"><span>' + t('categoryLabel') + '</span><select name="categoryId" required>' + categoryOptions + '</select></label><label class="field"><span>' + t('skuLabel') + '</span><input name="sku" required value="' + esc(item.sku) + '"></label><label class="field"><span>' + t('priceLabel') + '</span><input name="price" type="number" min="1" step="1" required value="' + esc(item.price) + '"></label><label class="field"><span>' + t('salePriceLabel') + '</span><input name="salePrice" type="number" min="0" step="1" value="' + esc(item.salePrice == null ? '' : item.salePrice) + '"></label><div class="field field-wide admin-image-upload-control" data-admin-product-images><span>'+ t('imagesLabel') +'</span><textarea name="images" rows="3" placeholder="assets/images/look-tee.jpg">'+ esc((item.images || []).join('\n')) +'</textarea><label class="button button-outline button-small admin-image-file-button">'+ tx('Upload product photos','رفع صور المنتج من الجهاز') +''<input id="product-images-input" type="file" data-admin-image-upload="product" multiple accept="image/jpeg,image/png,image/webp"></label><div class="admin-image-upload-meta"><small>'+ tx('Select multiple photos · up to 5MB each','تقدر تختار أكتر من صورة · حتى 5MB للصورة') +'</small><span id="product-images-status"></span></div><div id="product-image-upload-preview" class="admin-image-preview-grid"></div></div></div><div class="admin-form-flags"><label class="check-row"><input name="active" type="checkbox" ' + (item.active ? 'checked' : '') + '><span>' + t('productActive') + '</span></label><label class="check-row"><input name="featured" type="checkbox" ' + (item.featured ? 'checked' : '') + '><span>' + t('featuredProduct') + '</span></label></div></div><div class="editor-section"><span class="eyebrow">02 · ' + t('variantMode') + '</span><label class="field"><span>' + t('variantMode') + '</span><select name="variantMode" id="variant-mode"><option value="none" ' + (mode === 'none' ? 'selected' : '') + '>' + t('noVariants') + '</option><option value="size" ' + (mode === 'size' ? 'selected' : '') + '>' + t('sizeOnly') + '</option><option value="color" ' + (mode === 'color' ? 'selected' : '') + '>' + t('colourOnly') + '</option><option value="size-color" ' + (mode === 'size-color' ? 'selected' : '') + '>' + t('sizeAndColour') + '</option></select></label><div id="variant-options" class="variant-options ' + (mode === 'none' ? 'hidden' : '') + '"><div class="variant-option-block ' + (mode === 'color' ? 'hidden' : '') + '" id="size-option-block"><strong>' + t('selectSizes') + '</strong><div class="option-check-list">' + sizeOptions + '</div></div><div class="variant-option-block ' + (mode === 'size' ? 'hidden' : '') + '" id="color-option-block"><strong>' + t('selectColours') + '</strong><div class="option-check-list">' + colorOptions + '</div></div><button class="button button-outline button-small" type="button" data-action="generate-variants">' + t('generateVariants') + '</button><p class="form-hint">' + t('noVariantsWarning') + '</p></div><div id="variant-editor-rows">' + variantRows(variants) + '</div><div class="simple-stock-field ' + (mode !== 'none' ? 'hidden' : '') + '" id="simple-stock-field"><label class="field"><span>' + t('stockLabel') + '</span><input name="stock" type="number" min="0" step="1" value="' + esc(item.stock || 0) + '"></label></div></div><div class="modal-actions editor-actions"><button type="button" class="button button-outline" data-action="modal-close">' + t('cancel') + '</button><button type="submit" class="button button-primary">' + t('save') + C().icon('check', 16) + '</button></div></form>';
     modalHost(C().modal(editing ? t('edit') + ' · ' + loc(item.name) : t('addProduct'), content));
     const form = document.getElementById('product-editor-form');
     const modeInput = document.getElementById('variant-mode');
@@ -62,6 +62,17 @@
       document.getElementById('color-option-block').classList.toggle('hidden', value === 'size' || value === 'none');
       document.getElementById('simple-stock-field').classList.toggle('hidden', value !== 'none');
     });
+    const productImageInput = document.getElementById('product-images-input');
+    const productImagePreview = document.getElementById('product-image-upload-preview');
+    if (productImageInput && productImagePreview) {
+      productImageInput.addEventListener('change', function () {
+        const files = Array.from(productImageInput.files || []);
+        productImagePreview.innerHTML = files.map(function (file) {
+          const url = URL.createObjectURL(file);
+          return '<figure><img src="' + url + '" alt=""><figcaption>' + esc(file.name) + '</figcaption></figure>';
+        }).join('');
+      });
+    }
     form.addEventListener('submit', async function (event) {
       event.preventDefault(); if (!form.reportValidity()) return;
       const values = new FormData(form); const variantMode = values.get('variantMode');
@@ -73,7 +84,25 @@
       if (variantMode !== 'none' && !outputVariants.length) { C().toast(t('noVariantsWarning'), 'error'); return; }
       const images = String(values.get('images') || '').split(/\r?\n/).map(function (url) { return Store.safeExternalUrl(url); }).filter(Boolean);
       const payload = { id: values.get('id') || undefined, name: { en: values.get('nameEn').trim(), ar: values.get('nameAr').trim() }, description: { en: values.get('descriptionEn').trim(), ar: values.get('descriptionAr').trim() }, categoryId: values.get('categoryId'), price: Number(values.get('price')), salePrice: values.get('salePrice') === '' ? null : Number(values.get('salePrice')), sku: values.get('sku').trim(), images: images, active: values.has('active'), featured: values.has('featured'), stock: variantMode === 'none' ? Number(values.get('stock') || 0) : 0, variants: outputVariants };
-      try { await Store.repo.saveProduct(payload); C().toast(t('productSaved'), 'success'); closeModal(); Store.renderCurrent(); } catch (error) { C().toast(error.message || t('errorBody'), 'error'); }
+      try {
+        const saved = await Store.repo.saveProduct(payload);
+        const files = Array.from(productImageInput && productImageInput.files || []);
+        if (files.length) {
+          const status = document.getElementById('product-images-status');
+          const submit = form.querySelector('button[type="submit"]');
+          if (submit) submit.disabled = true;
+          const uploaded = [];
+          for (let index = 0; index < files.length; index += 1) {
+            if (status) status.textContent = tx('Uploading ' + (index + 1) + ' of ' + files.length + '…', 'جاري رفع ' + (index + 1) + ' من ' + files.length + '…');
+            const url = await uploadAdminImage(files[index], { productId: saved.id, altEn: values.get('nameEn'), altAr: values.get('nameAr') });
+            if (url) uploaded.push(url);
+          }
+          if (status) status.textContent = tx(uploaded.length + ' image(s) uploaded', 'تم رفع ' + uploaded.length + ' صورة');
+        }
+        C().toast(t('productSaved'), 'success');
+        closeModal();
+        Store.renderCurrent();
+      } catch (error) { C().toast(error.message || t('errorBody'), 'error'); const submit = form.querySelector('button[type="submit"]'); if (submit) submit.disabled = false; }
     });
   }
   function variantRows(variants) {
@@ -105,7 +134,7 @@
   }
   function openCategoryEditor(category) {
     const item = category || { id: '', slug: '', name: { en: '', ar: '' }, description: { en: '', ar: '' }, image: '', order: 1, active: true };
-    const content = '<form id="category-editor-form" class="admin-editor-form"><input type="hidden" name="id" value="' + esc(item.id) + '"><div class="admin-form-grid"><label class="field"><span>' + t('nameEnglish') + '</span><input name="nameEn" required value="' + esc(item.name.en) + '"></label><label class="field"><span>' + t('nameArabic') + '</span><input name="nameAr" required value="' + esc(item.name.ar) + '"></label><label class="field"><span>' + t('slug') + '</span><input name="slug" value="' + esc(item.slug) + '"></label><label class="field"><span>' + t('sortOrder') + '</span><input name="order" type="number" min="0" value="' + esc(item.order || 0) + '"></label><label class="field"><span>' + t('descriptionEnglish') + '</span><textarea name="descriptionEn" rows="3">' + esc(item.description.en) + '</textarea></label><label class="field"><span>' + t('descriptionArabic') + '</span><textarea name="descriptionAr" rows="3">' + esc(item.description.ar) + '</textarea></label><label class="field field-wide"><span>' + t('imageUrl') + '</span><input name="image" value="' + esc(item.image || '') + '"></label><label class="check-row"><input name="active" type="checkbox" ' + (item.active ? 'checked' : '') + '><span>' + t('active') + '</span></label></div><div class="modal-actions"><button type="button" class="button button-outline" data-action="modal-close">' + t('cancel') + '</button><button class="button button-primary" type="submit">' + t('save') + '</button></div></form>';
+    const content = '<form id="category-editor-form" class="admin-editor-form"><input type="hidden" name="id" value="' + esc(item.id) + '"><div class="admin-form-grid"><label class="field"><span>' + t('nameEnglish') + '</span><input name="nameEn" required value="' + esc(item.name.en) + '"></label><label class="field"><span>' + t('nameArabic') + '</span><input name="nameAr" required value="' + esc(item.name.ar) + '"></label><label class="field"><span>' + t('slug') + '</span><input name="slug" value="' + esc(item.slug) + '"></label><label class="field"><span>' + t('sortOrder') + '</span><input name="order" type="number" min="0" value="' + esc(item.order || 0) + '"></label><label class="field"><span>' + t('descriptionEnglish') + '</span><textarea name="descriptionEn" rows="3">' + esc(item.description.en) + '</textarea></label><label class="field"><span>' + t('descriptionArabic') + '</span><textarea name="descriptionAr" rows="3">' + esc(item.description.ar) + '</textarea></label>'+ imageField('image', t('imageUrl'), item.image || '', { placeholder: 'assets/…' }) +'<label class="check-row"><input name="active" type="checkbox" ' + (item.active ? 'checked' : '') + '><span>' + t('active') + '</span></label></div><div class="modal-actions"><button type="button" class="button button-outline" data-action="modal-close">' + t('cancel') + '</button><button class="button button-primary" type="submit">' + t('save') + '</button></div></form>';
     modalHost(C().modal(category ? t('edit') + ' · ' + loc(category.name) : t('addCategory'), content));
     document.getElementById('category-editor-form').addEventListener('submit', async function (event) { event.preventDefault(); const form = event.currentTarget; if (!form.reportValidity()) return; const values = new FormData(form); try { await Store.repo.saveCategory({ id: values.get('id') || undefined, slug: values.get('slug'), name: { en: values.get('nameEn'), ar: values.get('nameAr') }, description: { en: values.get('descriptionEn'), ar: values.get('descriptionAr') }, image: Store.safeExternalUrl(values.get('image')) || '', order: values.get('order'), active: values.has('active') }); C().toast(t('categorySaved')); closeModal(); Store.renderCurrent(); } catch (error) { C().toast(error.message || t('errorBody'), 'error'); } });
   }
@@ -274,6 +303,7 @@
     if (result.active === 'products') bindProductList(result.extra);
     if (result.active === 'orders') bindOrderFilter();
     bindSettings();
+    bindImageUploaders(root);
     if (window.location.search.indexOf('new=1') >= 0) { history.replaceState({}, '', window.location.pathname); if (result.active === 'products') openProductEditor(null, await Store.repo.listCategories(true), await Store.repo.listSizes(), await Store.repo.listColors()); if (result.active === 'categories') openCategoryEditor(null); if (result.active === 'promotions') openPromotionEditor(null); }
   }
   function bindProductList(extra) {
@@ -287,5 +317,87 @@
     const form = document.getElementById('settings-form'); if (!form) return;
     form.addEventListener('submit', async function (event) { event.preventDefault(); if (!form.reportValidity()) return; const values = new FormData(form); const settings = await Store.repo.getSettings(); settings.phone = values.get('phone'); settings.email = values.get('email'); settings.address = { en: values.get('addressEn'), ar: values.get('addressAr') }; settings.deliveryFee = Number(values.get('deliveryFee') || 0); settings.freeDeliveryThreshold = Number(values.get('freeDeliveryThreshold') || 0); settings.lowStockThreshold = Number(values.get('lowStockThreshold') || 0); settings.deliveryNote = { en: values.get('deliveryNoteEn'), ar: values.get('deliveryNoteAr') }; try { await Store.repo.saveSettings(settings); C().toast(t('settingsSaved')); } catch (error) { C().toast(error.message || t('errorBody'), 'error'); } });
   }
-  Store.Admin = { shell: shell, render: render, openProductEditor: openProductEditor, openCategoryEditor: openCategoryEditor, openSizeEditor: openSizeEditor, openColorEditor: openColorEditor, openPromotionEditor: openPromotionEditor, modalOrder: modalOrder, closeModal: closeModal, generateVariantRows: generateVariantRows, stockFor: stockFor };
+  async function fileToBase64(file) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const chunkSize = 0x8000;
+    let binary = '';
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)));
+    }
+    return btoa(binary);
+  }
+
+  async function uploadAdminImage(file, options) {
+    const opts = options || {};
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!file || !allowed.includes(file.type)) throw new Error(tx('Choose a JPG, PNG or WebP image.', 'اختار صورة JPG أو PNG أو WebP.'));
+    if (file.size > 5 * 1024 * 1024) throw new Error(tx('Image must be 5MB or smaller.', 'حجم الصورة لازم يكون 5MB أو أقل.'));
+    const base64 = await fileToBase64(file);
+    const productId = String(opts.productId || '').trim();
+    const payload = {
+      action: productId ? 'upload_image' : 'upload_asset',
+      product_id: productId || undefined,
+      folder: productId ? undefined : String(opts.folder || 'site-assets'),
+      file_name: file.name,
+      mime_type: file.type,
+      data_base64: base64,
+      alt_en: String(opts.altEn || ''),
+      alt_ar: String(opts.altAr || '')
+    };
+    const result = await Store.supabase.edge('elgewaliy-admin', payload, {
+      adminToken: Store.AdminGate && Store.AdminGate.adminCode ? Store.AdminGate.adminCode() : ''
+    });
+    if (productId) return result && result.image && result.image.url ? result.image.url : '';
+    return result && result.url ? result.url : '';
+  }
+
+  function imageField(name, label, value, options) {
+    const opts = options || {};
+    const preview = value ? Store.asset(Store.safeImage(value)) : '';
+    return '<div class="field field-wide admin-image-upload-control" data-admin-image-field>' +
+      '<span>' + esc(label) + '</span>' +
+      '<div class="admin-image-input-row">' +
+      '<input name="' + esc(name) + '" value="' + esc(value == null ? '' : value) + '" placeholder="' + esc(opts.placeholder || 'https://…') + '">' +
+      '<label class="button button-outline button-small admin-image-file-button">' + tx('Upload from device', 'رفع من الجهاز') +
+      '<input type="file" data-admin-image-upload data-image-target="' + esc(name) + '" accept="image/jpeg,image/png,image/webp"></label>' +
+      '</div>' +
+      '<div class="admin-image-upload-meta"><small>' + tx('JPG, PNG or WebP · up to 5MB', 'JPG أو PNG أو WebP · حتى 5MB') + '</small><span data-admin-image-status></span></div>' +
+      '<div class="admin-image-preview" data-admin-image-preview' + (preview ? '' : ' hidden') + '>' + (preview ? '<img src="' + preview + '" alt="">' : '') + '</div>' +
+      '</div>';
+  }
+
+  function bindImageUploaders(root) {
+    const scope = root || document;
+    scope.querySelectorAll('[data-admin-image-upload]:not([data-admin-image-upload="product"])').forEach(function (input) {
+      if (input.dataset.adminImageBound === '1') return;
+      input.dataset.adminImageBound = '1';
+      input.addEventListener('change', async function () {
+        const file = input.files && input.files[0];
+        const holder = input.closest('[data-admin-image-field]');
+        const targetName = input.dataset.imageTarget || '';
+        const target = holder && targetName ? holder.querySelector('[name="' + targetName + '"]') : null;
+        const status = holder && holder.querySelector('[data-admin-image-status]');
+        const preview = holder && holder.querySelector('[data-admin-image-preview]');
+        if (!file || !target) return;
+        try {
+          if (status) status.textContent = tx('Uploading…', 'جاري رفع الصورة…');
+          const url = await uploadAdminImage(file, { folder: 'site-assets' });
+          if (!url) throw new Error(tx('The image URL was not returned.', 'لم يتم استلام رابط الصورة.'));
+          target.value = url;
+          target.dispatchEvent(new Event('input', { bubbles: true }));
+          if (preview) {
+            preview.hidden = false;
+            preview.innerHTML = '<img src="' + Store.asset(Store.safeImage(url)) + '" alt="">';
+          }
+          if (status) status.textContent = tx('Uploaded', 'تم رفع الصورة');
+        } catch (error) {
+          if (status) status.textContent = '';
+          C().toast(error.message || t('errorBody'), 'error');
+          input.value = '';
+        }
+      });
+    });
+  }
+
+  Store.Admin = { shell: shell, render: render, openProductEditor: openProductEditor, openCategoryEditor: openCategoryEditor, openSizeEditor: openSizeEditor, openColorEditor: openColorEditor, openPromotionEditor: openPromotionEditor, modalOrder: modalOrder, closeModal: closeModal, generateVariantRows: generateVariantRows, stockFor: stockFor, imageField: imageField, bindImageUploaders: bindImageUploaders, uploadAdminImage: uploadAdminImage };
 })(window.Store);
