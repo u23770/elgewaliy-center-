@@ -90,6 +90,17 @@
     write(SESSION_KEY, sessionToken);
     return true;
   }
+
+  async function signInAndVerify(code) {
+    await signIn(code);
+    const sessionToken = token();
+    const valid = await verifySession(sessionToken);
+    if (!valid) {
+      await revokeAccess();
+      throw new Error('The admin session could not be verified. Please try again.');
+    }
+    return true;
+  }
   async function revokeAccess(target) {
     const sessionToken = token(target);
     if (sessionToken) {
@@ -135,7 +146,7 @@
           if (error) error.hidden = true;
           const submit = form.querySelector('button[type="submit"]');
           if (submit) submit.disabled = true;
-          signIn(field && field.value).then(function () {
+          signInAndVerify(field && field.value).then(function () {
             if (field) field.value = '';
             openDashboard();
           }).catch(function (reason) {
