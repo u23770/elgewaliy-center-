@@ -120,10 +120,34 @@
   Store.renderCurrent = renderCurrent;
   function setMobileMenu(open) {
     const header = document.querySelector('.site-header'); const menu = document.getElementById('mobile-navigation'); const trigger = document.querySelector('.mobile-menu-button');
+    if (open) {
+      if (header) header.classList.remove('mobile-search-open');
+      const searchPanel = document.getElementById('mobile-search-panel');
+      const searchTrigger = document.querySelector('.mobile-search-button');
+      if (searchPanel) searchPanel.setAttribute('aria-hidden', 'true');
+      if (searchTrigger) searchTrigger.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('search-open');
+    }
     if (header) header.classList.toggle('mobile-nav-open', Boolean(open));
     if (menu) menu.setAttribute('aria-hidden', String(!open));
     if (trigger) trigger.setAttribute('aria-expanded', String(Boolean(open)));
     document.body.classList.toggle('nav-open', Boolean(open));
+  }
+
+  function setMobileSearch(open) {
+    const header = document.querySelector('.site-header'); const panel = document.getElementById('mobile-search-panel'); const trigger = document.querySelector('.mobile-search-button');
+    if (open) {
+      if (header) header.classList.remove('mobile-nav-open');
+      const menu = document.getElementById('mobile-navigation');
+      const menuTrigger = document.querySelector('.mobile-menu-button');
+      if (menu) menu.setAttribute('aria-hidden', 'true');
+      if (menuTrigger) menuTrigger.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('nav-open');
+    }
+    if (header) header.classList.toggle('mobile-search-open', Boolean(open));
+    if (panel) panel.setAttribute('aria-hidden', String(!open));
+    if (trigger) trigger.setAttribute('aria-expanded', String(Boolean(open)));
+    document.body.classList.toggle('search-open', Boolean(open));
   }
   function setAdminMenu(open) { const sidebar = document.getElementById('admin-sidebar'); if (sidebar) sidebar.classList.toggle('open', Boolean(open)); document.body.classList.toggle('admin-menu-open', Boolean(open)); }
   async function handleClick(event) {
@@ -133,7 +157,8 @@
     if (action === 'switch-language') { event.preventDefault(); const snapshot = captureFormState(); const modal = document.querySelector('.modal-backdrop'); if (modal) modal.remove(); Store.i18n.set(Store.i18n.locale === 'ar' ? 'en' : 'ar'); await renderCurrent({ snapshot: snapshot }); if (modal) { const host = document.getElementById('admin-modal-root'); if (host) host.appendChild(modal); } return; }
     if (action === 'mobile-menu') { setMobileMenu(true); return; }
     if (action === 'mobile-menu-close') { setMobileMenu(false); return; }
-    if (action === 'mobile-search') { setMobileMenu(true); window.setTimeout(function () { const field = document.getElementById('mobile-search-input'); if (field) field.focus(); }, 80); return; }
+    if (action === 'mobile-search') { setMobileSearch(true); window.setTimeout(function () { const field = document.getElementById('mobile-search-input'); if (field) field.focus(); }, 80); return; }
+    if (action === 'mobile-search-close') { setMobileSearch(false); return; }
     if (action === 'cart-open') { Store.Cart.openDrawer(); return; }
     if (action === 'cart-drawer-close') { if (event.target.closest('.cart-drawer') && !event.target.closest('[data-action="cart-drawer-close"]')) return; Store.Cart.closeDrawer(); return; }
     if (action === 'modal-close') { if (actionNode.closest('.modal-backdrop') && event.target !== actionNode && actionNode.classList.contains('modal-backdrop')) Store.Admin.closeModal(); else Store.Admin.closeModal(); return; }
@@ -198,7 +223,7 @@
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') return;
     if (Store.view.cartDrawerOpen) Store.Cart.closeDrawer();
-    setMobileMenu(false); setAdminMenu(false);
+    setMobileMenu(false); setMobileSearch(false); setAdminMenu(false);
     const modal = document.querySelector('.modal-backdrop'); if (modal) Store.Admin.closeModal();
     const filter = document.getElementById('shop-filter-panel'); if (filter && filter.classList.contains('open')) { filter.classList.remove('open'); document.body.classList.remove('filter-open'); }
   });
