@@ -9,25 +9,47 @@
   async function request(path, options) {
     if (!ready) throw new Error('Supabase is not configured. Add the project URL and anon key to js/config.js.');
     const opts = options || {};
+    const timeoutMs = Math.max(1000, Number(opts.timeoutMs || 12000));
     const headers = new Headers(opts.headers || {});
     headers.set('apikey', config.supabaseAnonKey);
     headers.set('Authorization', 'Bearer ' + (opts.token || token()));
     headers.set('Accept', 'application/json');
     if (opts.body !== undefined && !(opts.body instanceof FormData)) headers.set('Content-Type', 'application/json');
     if (opts.prefer) headers.set('Prefer', opts.prefer);
-    const response = await fetch(config.supabaseUrl.replace(/\/$/, '') + '/' + path.replace(/^\//, ''), {
-      method: opts.method || 'GET', headers: headers,
-      body: opts.body === undefined ? undefined : (opts.body instanceof FormData ? opts.body : JSON.stringify(opts.body))
-    });
-    const raw = await response.text();
-    let payload = null;
-    if (raw) { try { payload = JSON.parse(raw); } catch (_) { payload = raw; } }
-    if (!response.ok) {
-      const message = payload && (payload.message || payload.msg || payload.error_description || payload.error) || 'Supabase request failed (' + response.status + ')';
-      const error = new Error(message); error.status = response.status; error.code = payload && payload.code; throw error;
+
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
+
+    try {
+      const response = await fetch(config.supabaseUrl.replace(/\/$/, '') + '/' + path.replace(/^\//, ''), {
+        method: opts.method || 'GET',
+        headers: headers,
+        body: opts.body === undefined ? undefined : (opts.body instanceof FormData ? opts.body : JSON.stringify(opts.body)),
+        signal: controller ? controller.signal : undefined
+      });
+      const raw = await response.text();
+      let payload = null;
+      if (raw) { try { payload = JSON.parse(raw); } catch (_) { payload = raw; } }
+      if (!response.ok) {
+        const message = payload && (payload.message || payload.msg || payload.error_description || payload.error) || 'Supabase request failed (' + response.status + ')';
+        const error = new Error(message);
+        error.status = response.status;
+        error.code = payload && payload.code;
+        throw error;
+      }
+      return payload;
+    } catch (error) {
+      if (controller && controller.signal.aborted) {
+        const timeoutError = new Error('Supabase request timed out. Please check your internet connection and try again.');
+        timeoutError.code = 'ETIMEDOUT';
+        throw timeoutError;
+      }
+      throw error;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
-    return payload;
   }
+
   function query(params) {
     const result = new URLSearchParams();
     Object.keys(params || {}).forEach(function (key) {
