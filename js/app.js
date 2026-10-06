@@ -28,6 +28,14 @@
       const content = Store.view.siteConfig.content || {};
       const name = Store.i18n.localized(identity.storeName) || t('brand');
       const seo = content.seo || {};
+      const loader = document.querySelector('.initial-loader');
+      const loaderMark = loader && loader.querySelector('.loader-mark');
+      const loaderLogo = identity.logoPath || identity.faviconPath || '';
+      if (loaderMark && loaderLogo) {
+        loaderMark.innerHTML = '<img class="loader-logo" src="' + Store.asset(Store.safeImage(loaderLogo)) + '" alt="' + esc(name) + '">';
+        loaderMark.classList.add('has-logo');
+      }
+      if (loaderMark) loaderMark.setAttribute('aria-label', name);
       const description = Store.i18n.localized(seo.description) || '';
       if (document.body && !document.body.dataset.page.startsWith('admin-')) {
         const favicon = identity.faviconPath || identity.logoPath;
