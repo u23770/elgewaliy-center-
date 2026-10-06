@@ -36,3 +36,23 @@
   .quick-action{flex-wrap:wrap}
   .quick-action small{width:100%;margin-inline-start:0}
 }
+
+/* Admin image upload controls */
+.admin-image-upload-control{display:grid;gap:8px}
+.admin-image-input-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}
+.admin-image-input-row>input{min-width:0}
+.admin-image-file-button{position:relative;overflow:hidden;cursor:pointer;white-space:nowrap}
+.admin-image-file-button input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.admin-image-upload-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:8px}
+.admin-image-upload-meta span{color:var(--success);font-weight:700}
+.admin-image-preview{overflow:hidden;border:1px solid var(--line);background:#f7f5ef;max-width:220px;border-radius:10px}
+.admin-image-preview img{display:block;width:100%;max-height:180px;object-fit:contain}
+.admin-image-preview-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.admin-image-preview-grid figure{margin:0;display:grid;gap:4px;min-width:0}
+.admin-image-preview-grid img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#f2f0e9}
+.admin-image-preview-grid figcaption{overflow:hidden;color:var(--muted);font-size:7px;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:560px){
+  .admin-image-input-row{grid-template-columns:1fr}
+  .admin-image-file-button{width:100%;justify-content:center}
+  .admin-image-preview-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
