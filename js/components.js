@@ -1,5 +1,6 @@
 (function (Store) {
   const t = function (key, params) { return Store.i18n.t(key, params); };
+  const esc = function (value) { return Store.escape(value); };
   function icon(name, size) {
     const paths = {
       search: '<circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path>',
