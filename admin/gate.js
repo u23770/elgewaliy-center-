@@ -166,8 +166,8 @@
         }
       }
     };
-    if (root.document.readyState === 'loading') root.document.addEventListener('DOMContentLoaded', init, { once: true });
-    else init();
+    if (root.document.readyState === 'complete') init();
+    else root.document.addEventListener('DOMContentLoaded', init, { once: true });
   }
 
   return {
