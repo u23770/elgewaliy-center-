@@ -71,6 +71,16 @@
       resetPassword: function (email, redirectTo) { const suffix = redirectTo ? '?redirect_to=' + encodeURIComponent(redirectTo) : ''; return request('auth/v1/recover' + suffix, { method: 'POST', body: { email: email } }); },
       refresh: function (refreshToken) { return request('auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: refreshToken } }); }
     },
+    edge: function (name, body, options) {
+      const opts = options || {};
+      const adminToken = String(opts.adminToken || '').trim();
+      const headers = adminToken ? { 'x-admin-token': adminToken } : {};
+      return request('functions/v1/' + encodeURIComponent(name), {
+        method: 'POST',
+        headers: headers,
+        body: body || {}
+      });
+    },
     upload: async function (bucket, objectPath, file, options) {
       if (!ready) throw new Error('Supabase is not configured.');
       const safePath = objectPath.split('/').map(encodeURIComponent).join('/');
