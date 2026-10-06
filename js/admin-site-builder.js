@@ -9,6 +9,7 @@
     const host = document.getElementById('admin-modal-root');
     if (!host) return;
     host.innerHTML = Store.Components.modal(title || '', content, '<button type="button" class="button button-outline" data-action="modal-close">' + t('cancel') + '</button>');
+    if (Store.Admin && typeof Store.Admin.bindImageUploaders === 'function') Store.Admin.bindImageUploaders(host);
   };
   const saveSite = async function (config) {
     const util = cfgUtil();
